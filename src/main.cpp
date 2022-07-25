@@ -28,8 +28,94 @@
  * @author  Clément Foucher <clement.foucher@laas.fr>
  */
 
+//-------------OWNTECH DRIVERS-------------------
+#include "HardwareConfiguration.h"
+#include "DataAcquisition.h"
+#include "Scheduling.h"
+#include "opalib_control_pid.h"
+
+//------------ZEPHYR DRIVERS----------------------
+#include "zephyr.h"
+#include "console/console.h"
+
+
+#define APPLICATION_THREAD_PRIORITY 3
+#define COMMUNICATION_THREAD_PRIORITY 5
+
+//--------------SETUP FUNCTIONS DECLARATION-------------------
+void setup_hardware(); //setups the hardware peripherals of the system
+void setup_software(); //setups the scheduling of the software and the control method
+
+//-------------LOOP FUNCTIONS DECLARATION----------------------
+void loop_communication_task(); //code to be executed in the slow communication task
+void loop_application_task();   //code to be executed in the fast application task
+void loop_control_task();       //code to be executed in real-time at 20kHz
+
+
+enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
+{
+    IDLEMODE =0,
+};
+
+uint8_t received_serial_char;
+uint8_t mode = IDLEMODE;
+
+//--------------USER VARIABLES DECLARATIONS----------------------
+
+
+
+//---------------------------------------------------------------
+
+
+//---------------SETUP FUNCTIONS----------------------------------
+
+void setup_hardware()
+{
+    hwConfig.setBoardVersion(SPIN_v_0_9);
+    //setup your hardware here
+}
+
+void setup_software()
+{
+    scheduling.startApplicationTask(loop_application_task,APPLICATION_THREAD_PRIORITY);
+    //setup your software scheduling here
+}
+
+//---------------LOOP FUNCTIONS----------------------------------
+
+void loop_communication_task()
+{
+    while(1) {
+        //communication task code goes here
+    }
+}
+
+
+void loop_application_task()
+{
+    while(1){
+
+        printk("Hello World! \n");
+        hwConfig.setLedToggle();  
+        
+        k_msleep(100);    
+    }
+
+}
+
+
+void loop_control_task()
+{
+    //loop control task code goes here
+}
+
+/**
+ * This is the main function of this example
+ * This function is generic and does not need editing.
+ */
 
 void main(void)
 {
-
+    setup_hardware();
+    setup_software();
 }
