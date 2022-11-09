@@ -1,3 +1,5 @@
 config OWNTECH_COMPARATOR_DRIVER
 	bool "Enable OwnTech comparator driver for STM32"
 	default y
+select USE_STM32_LL_COMP
+select USE_STM32_LL_OPAMP
