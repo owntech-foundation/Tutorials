@@ -34,7 +34,6 @@
 #include "Scheduling.h"
 // #include "CanCommunication.h"
 #include "opalib_pid_current_mode.h"
-#include "opalib_control_pid.h"
 
 //------------ZEPHYR DRIVERS----------------------
 #include "zephyr.h"
@@ -75,12 +74,13 @@ static double V1_low_value;
 static double V2_low_value; 
 
 static double meas_data; //temp storage meas value (ctrl task)
-
+static double iRef = 3.4;
+static double pcc_max;
+static double pcc_min;
 //---------------------------------------------------------------
 
 static uint32_t control_task_period = 100; //[us] period of the control task
 static bool pwm_enable = false; //[bool] state of the PWM (ctrl task)
-
 
 //---------------SETUP FUNCTIONS----------------------------------
 
@@ -132,10 +132,14 @@ void loop_communication_task()
                 mode = POWERMODE;
                 break;
             case 'u':
-                voltage_reference = voltage_reference + 5;
-                printk("up");
+                iRef = iRef + .1;
+                printk("up %f\n", iRef);
+                printk("pcc_max = %f\n", pcc_max);
+                printk("pcc_min = %f\n", pcc_min);
+                break;
             case 'd' : 
-                voltage_reference = voltage_reference - 5;
+                iRef = iRef - .1;
+                printk("down %f\n", iRef);
             default:
                 break;
 
@@ -155,13 +159,14 @@ void loop_application_task()
         hwConfig.setLedToggle();
         total_cycles = timing_cycles_get(&start_time, &end_time);
         total_ns = timing_cycles_to_ns(total_cycles);
-        printk("time = %lld, %lld\n", total_cycles, total_ns);
+        //printk("time = %lld, %lld\n", total_cycles, total_ns);
         k_msleep(100);
         }        
 }
 
 void loop_control_task()
 {
+    float32_t iMin;
     start_time = timing_counter_get();
     meas_data = dataAcquisition.getV1Low();
     if (meas_data != -10000)
@@ -186,8 +191,13 @@ void loop_control_task()
             Enable_CurrentMode();
             // Enable_CurrentMode_leg2();
         }
+        iMin = iRef - 2.4;
+        if (iMin < 0.0) iMin =  0.0;
 
-        Update_DutyCycle_CM(voltage_reference, V1_low_value);
+        pcc_max = ((iRef * 0.1) + 1.053);
+        pcc_min = ((iMin * 0.1) + 1.053);
+        set_satwtooth(pcc_max, pcc_min);
+        //Update_DutyCycle_CM(voltage_reference, V1_low_value);
         // Update_DutyCycle_CM_leg2(voltage_reference, V2_low_value);
     }
 
