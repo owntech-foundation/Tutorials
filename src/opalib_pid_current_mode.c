@@ -47,8 +47,8 @@ static double reset_value;
 
 // 2p2z for 4ms step response
 
-const double Az[3] = {1.000000000000000,  -0.6566,  -0.3434};
-const double Bz[3] = {-0.001687,   0.004444,  0.006131};
+//const double Az[3] = {1.000000000000000,  -0.6566,  -0.3434};
+//const double Bz[3] = {-0.001687,   0.004444,  0.006131};
 
 // 2p2z for 2ms step response
 
@@ -730,30 +730,30 @@ void Update_DutyCycle_CM_leg2(double reference, double measurement)
 
 // Control of the output voltage in leg1 with a 2p2z controller
 
-double p2z2_control(double yref, double y)
-{
-static double e[3] = {0.0, 0.0, 0.0};
-static double u[3] = {0.0, 0.0, 0.0};
-int kLoop;
-double reset_data; 
-
-
-e[0] = yref - y;
-
-u[0] = Bz[0] * e[0] + Bz[1] * e[1]  + Bz[2] * e[2] - Az[1] * u[1] - Az[2] * u[2];
-
-//if (u[0] < 0.1) u[0] = 0.1;
-//if (u[0] > 20.0) u[0] = 20.0;
-for (kLoop = 2;kLoop>0;--kLoop) {
-    u[kLoop] = u[kLoop-1];
-    e[kLoop] = e[kLoop-1];
-}
-
-reset_data = u[0]/10;
-
-if(reset_data > 2.35) reset_data = 2.35;
-
-set_satwtooth(reset_data, reset_data - 0.3);
-
-return u[1];
-}
+// double p2z2_control(double yref, double y)
+// {
+// static double e[3] = {0.0, 0.0, 0.0};
+// static double u[3] = {0.0, 0.0, 0.0};
+// int kLoop;
+// double reset_data; 
+// 
+// 
+// e[0] = yref - y;
+// 
+// u[0] = Bz[0] * e[0] + Bz[1] * e[1]  + Bz[2] * e[2] - Az[1] * u[1] - Az[2] * u[2];
+// 
+// //if (u[0] < 0.1) u[0] = 0.1;
+// //if (u[0] > 20.0) u[0] = 20.0;
+// for (kLoop = 2;kLoop>0;--kLoop) {
+//     u[kLoop] = u[kLoop-1];
+//     e[kLoop] = e[kLoop-1];
+// }
+// 
+// reset_data = u[0]/10;
+// 
+// if(reset_data > 2.35) reset_data = 2.35;
+// 
+// set_satwtooth(reset_data, reset_data - 0.3);
+// 
+// return u[1];
+// }
