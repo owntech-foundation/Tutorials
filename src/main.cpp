@@ -32,11 +32,13 @@
 #include "HardwareConfiguration.h"
 #include "DataAcquisition.h"
 #include "Scheduling.h"
+// #include "CanCommunication.h"
 #include "opalib_control_pid.h"
 
 //------------ZEPHYR DRIVERS----------------------
 #include "zephyr.h"
 #include "console/console.h"
+#include "drivers/gpio.h"
 
 
 #define APPLICATION_THREAD_PRIORITY 3
@@ -71,14 +73,13 @@ uint8_t mode = IDLEMODE;
 
 void setup_hardware()
 {
-    hwConfig.setBoardVersion(SPIN_v_0_9);
-    //setup your hardware here
+    hwConfig.setBoardVersion(TWIST_v_1_1_2);
+    console_init();
 }
 
 void setup_software()
 {
     scheduling.startApplicationTask(loop_application_task,APPLICATION_THREAD_PRIORITY);
-    //setup your software scheduling here
 }
 
 //---------------LOOP FUNCTIONS----------------------------------
@@ -86,7 +87,7 @@ void setup_software()
 void loop_communication_task()
 {
     while(1) {
-        //communication task code goes here
+
     }
 }
 
@@ -94,19 +95,17 @@ void loop_communication_task()
 void loop_application_task()
 {
     while(1){
+            printk("hello World! \n");
+            hwConfig.setLedToggle();
 
-        printk("Hello World! \n");
-        hwConfig.setLedToggle();  
-        
         k_msleep(100);    
-    }
-
+        }
 }
 
 
 void loop_control_task()
 {
-    //loop control task code goes here
+  //loop control task goes here
 }
 
 /**
