@@ -24,8 +24,8 @@
  */
 
 
-#ifndef CANCOMMUNICATION_H_
-#define CANCOMMUNICATION_H_
+#ifndef COMMUNICATIONBUS_H_
+#define COMMUNICATIONBUS_H_
 
 #include <stdint.h>
 #include <arm_math.h>
@@ -34,7 +34,7 @@
 /////
 // Static class definition
 
-class CanCommunication
+class CommunicationBus
 {
 
 public:
@@ -50,13 +50,17 @@ public:
 	static void setBroadcastPeriod(uint16_t time_100_ms);
 	static void setControlPeriod(uint16_t time_100_ms);
 
+	static void initAnalogComm();
+	static void triggerAnalogComm();
+	static float32_t getAnalogCommValue();
+	static void setAnalogCommValue(uint32_t analog_bus_value);
 };
 
 
 /////
 // Public object to interact with the class
 
-extern CanCommunication canCommunication;
+extern CommunicationBus commBus;
 
 
-#endif // CANCOMMUNICATION_H_
+#endif // COMMUNICATIONBUS_H_
