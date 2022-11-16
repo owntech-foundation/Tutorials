@@ -32,14 +32,15 @@
 #include "HardwareConfiguration.h"
 #include "DataAcquisition.h"
 #include "Scheduling.h"
-// #include "CanCommunication.h"
+#include "CommunicationBus.h" 
 #include "opalib_control_pid.h"
+#include "adc.h"
 
 //------------ZEPHYR DRIVERS----------------------
 #include "zephyr.h"
 #include "console/console.h"
 #include "drivers/gpio.h"
-
+#include "stm32_ll_adc.h"
 
 #define APPLICATION_THREAD_PRIORITY 3
 #define COMMUNICATION_THREAD_PRIORITY 5
@@ -64,6 +65,7 @@ uint8_t mode = IDLEMODE;
 
 //--------------USER VARIABLES DECLARATIONS----------------------
 
+uint32_t dac_value;
 
 
 //---------------------------------------------------------------
@@ -74,11 +76,26 @@ uint8_t mode = IDLEMODE;
 void setup_hardware()
 {
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
+    hwConfig.configureAdcDefaultAllMeasurements();
+    commBus.initAnalogComm();
+    
+    //hwConfig.initDacConstValue(2);
+
+	// const char* adc4_channels[] =
+	// {
+	// 	"CURRENT_SHARE"
+	// };
+
+	// hwConfig.configureAdcChannels(4, adc4_channels, 1);
+
+
+
     console_init();
 }
 
 void setup_software()
 {
+    dataAcquisition.start();
     scheduling.startApplicationTask(loop_application_task,APPLICATION_THREAD_PRIORITY);
 }
 
@@ -95,11 +112,29 @@ void loop_communication_task()
 void loop_application_task()
 {
     while(1){
-            printk("hello World! \n");
-            hwConfig.setLedToggle();
 
-        k_msleep(100);    
-        }
+        float32_t converted_value;
+
+
+        hwConfig.setLedToggle();
+        if(dac_value>3000) dac_value = 1000;
+        commBus.setAnalogCommValue(dac_value);
+
+        // uint32_t data_count;
+        // uint16_t* buffer;
+        // // buffer = dataAcquisition.getCurrentShareValues(data_count);
+        // uint16_t raw_value = buffer[data_count - 1];
+        converted_value = commBus.getAnalogCommValue();
+
+        printk("%f\n", converted_value);
+        // printk("%d\n", raw_value);
+        dac_value = dac_value+100;
+
+        commBus.triggerAnalogComm();
+        // LL_ADC_REG_StartConversion(ADC4);
+
+        k_msleep(100);
+    }
 }
 
 
