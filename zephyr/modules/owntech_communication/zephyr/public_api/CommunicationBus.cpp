@@ -105,7 +105,7 @@ void CommunicationBus::triggerAnalogComm()
 
 float32_t CommunicationBus::getAnalogCommValue()
 {
-    analog_comm_get_value();
+    return analog_comm_get_value();
 }
 
 void CommunicationBus::setAnalogCommValue(uint32_t analog_bus_value)

@@ -40,7 +40,7 @@ void analog_comm_init()
 {
 	const char* analog_comm_channels[] =
 	{
-		"CURRENT_SHARE"
+		"ANALOG_COMM"
 	};
 
 	hwConfig.configureAdcChannels(analog_comm_adc_number, analog_comm_channels, 1);
