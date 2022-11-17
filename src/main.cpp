@@ -71,7 +71,10 @@ static float32_t ki = 200;
 static float32_t voltage_reference = 25;
 
 static float32_t V1_low_value; 
-static float32_t V2_low_value; 
+static float32_t I1_low_value;
+static float32_t V2_low_value;
+static float32_t I2_low_value;
+static float32_t V_High_value;
 
 static float32_t meas_data; //temp storage meas value (ctrl task)
 static float32_t vRef = 25.0;
@@ -80,8 +83,11 @@ static float32_t pcc_min;
 
 typedef struct myRecord {
     float32_t v1_low;
+    float32_t v2_low;
     float32_t vHigh;
     float32_t iHigh;
+    float32_t i1_low;
+    float32_t i2_low;
     float32_t iRef;
     float32_t vRef; 
     uint64_t tCalc;
@@ -135,6 +141,7 @@ float32_t p2z2_control_v2(float32_t yref, float32_t y, bool enable)
 
 static uint32_t control_task_period = 100; //[us] period of the control task
 static bool pwm_enable = false; //[bool] state of the sWM (ctrl task)
+static uint16_t kTab;
 
 //---------------SETUP FUNCTIONS----------------------------------
 
@@ -190,6 +197,7 @@ void loop_communication_task()
                 printk("up %f\n", vRef);
                 printk("pcc_max = %f\n", pcc_max);
                 printk("pcc_min = %f\n", pcc_min);
+                printk("kTab = %hu\n", kTab);
                 break;
             case 'd' : 
                 vRef = vRef - 1.0;
@@ -209,14 +217,13 @@ void loop_application_task()
     uint8_t k;
     while(1){
         hwConfig.setLedToggle();
-        k_msleep(100);
+        k_msleep(500);
         }        
 }
 
 void loop_control_task()
 {
     float32_t iRef, iMin;
-    static uint16_t kTab;
     uint64_t total_cycles;
     volatile uint64_t total_ns;
     start_time = timing_counter_get();
@@ -224,17 +231,29 @@ void loop_control_task()
     if (meas_data != -10000)
         V1_low_value = meas_data;
 
+    meas_data = dataAcquisition.getI1Low();
+    if (meas_data != -10000)
+        I1_low_value = meas_data;
+    
+    meas_data = dataAcquisition.getI2Low();
+    if (meas_data != -10000)
+        I2_low_value = meas_data;
+
     meas_data = dataAcquisition.getV2Low();
     if (meas_data != -10000)
         V2_low_value = meas_data;
+
+    meas_data = dataAcquisition.getVHigh();
+    if (meas_data != -10000)
+        V_High_value = meas_data;
 
     if (mode == IDLEMODE)
     {
         pwm_enable = false;
         iRef = p2z2_control_v2(vRef, V1_low_value, false);
         Disable_CurrentMode();
+        Disable_CurrentMode_leg2();
         kTab = 0;
-        // Disable_CurrentMode_leg2();
     }
     else if (mode == POWERMODE)
     {
@@ -243,7 +262,7 @@ void loop_control_task()
         {
             pwm_enable = true;
             Enable_CurrentMode();
-            // Enable_CurrentMode_leg2();
+            Enable_CurrentMode_leg2();
         }
         if (kTab == 100)
             vRef = 30.0;
@@ -256,6 +275,7 @@ void loop_control_task()
         pcc_max = ((iRef * 0.1) + 1.053);
         pcc_min = ((iMin * 0.1) + 1.053);
         set_satwtooth(pcc_max, pcc_min);
+        set_satwtooth_leg2(pcc_max, pcc_min);
         //Update_DutyCycle_CM(voltage_reference, V1_low_value);
         // Update_DutyCy   cle_CM_leg2(voltage_reference, V2_low_value);
     }
@@ -264,10 +284,13 @@ void loop_control_task()
     total_ns = timing_cycles_to_ns(total_cycles);
     myRecords[kTab].iRef = iRef;
     myRecords[kTab].v1_low = V1_low_value;
+    myRecords[kTab].v2_low = V2_low_value;
+    myRecords[kTab].i1_low = I1_low_value;
+    myRecords[kTab].i2_low = I2_low_value;
+    myRecords[kTab].vHigh = V_High_value;
     myRecords[kTab].tCalc = total_ns;
     myRecords[kTab].vRef = vRef;
-    if (kTab < 0x1FF)
-        kTab++;
+    if (kTab < 0x1FF) kTab++;
 }
 
 /**
