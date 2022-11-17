@@ -79,11 +79,11 @@ void setup_hardware()
     hwConfig.configureAdcDefaultAllMeasurements();
     commBus.initAnalogComm();
     
-    //hwConfig.initDacConstValue(2);
+    // hwConfig.initDacConstValue(2);
 
 	// const char* adc4_channels[] =
 	// {
-	// 	"CURRENT_SHARE"
+	// 	"ANALOG_COMM"
 	// };
 
 	// hwConfig.configureAdcChannels(4, adc4_channels, 1);
@@ -113,21 +113,27 @@ void loop_application_task()
 {
     while(1){
 
-        float32_t converted_value;
+        // float32_t converted_value=0;
 
 
         hwConfig.setLedToggle();
         if(dac_value>3000) dac_value = 1000;
-        commBus.setAnalogCommValue(dac_value);
+        commBus.setAnalogCommValue(dac_value);        
 
         // uint32_t data_count;
         // uint16_t* buffer;
-        // // buffer = dataAcquisition.getCurrentShareValues(data_count);
+        // buffer = dataAcquisition.getAnalogCommRawValues(data_count);
         // uint16_t raw_value = buffer[data_count - 1];
-        converted_value = commBus.getAnalogCommValue();
+        
+        //gets the data from the analog communication
+        float32_t converted_value = commBus.getAnalogCommValue();
+        // float32_t converted_value = dataAcquisition.getAnalogComm();
 
-        printk("%f\n", converted_value);
-        // printk("%d\n", raw_value);
+
+
+        printk("%f:", converted_value);
+        // printk("%d:", raw_value);
+        printk("%d\n", dac_value);
         dac_value = dac_value+100;
 
         commBus.triggerAnalogComm();
