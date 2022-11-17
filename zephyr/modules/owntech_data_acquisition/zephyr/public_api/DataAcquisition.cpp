@@ -199,7 +199,7 @@ uint16_t* DataAcquisition::getExtraRawValues(uint32_t& number_of_values_acquired
 	return data_dispatch_get_acquired_values(extra_sensor_assignement.adc_number, extra_sensor_assignement.channel_rank, &number_of_values_acquired);
 }
 
-uint16_t* DataAcquisition::getAnalogCommValues(uint32_t& number_of_values_acquired)
+uint16_t* DataAcquisition::getAnalogCommRawValues(uint32_t& number_of_values_acquired)
 {
 	return data_dispatch_get_acquired_values(analog_comm_assignement.adc_number, analog_comm_assignement.channel_rank, &number_of_values_acquired);
 }
@@ -377,7 +377,7 @@ float32_t DataAcquisition::getAnalogComm()
 {
 	uint32_t data_count;
 	static float32_t converted_data = -10000; // Return an impossible value if no data has been acquired yet
-	uint16_t* buffer = getAnalogCommValues(data_count);
+	uint16_t* buffer = getAnalogCommRawValues(data_count);
 
 	if (data_count > 0) // If data was received it gets converted
 	{

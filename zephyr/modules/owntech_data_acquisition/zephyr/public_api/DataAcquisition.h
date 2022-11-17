@@ -109,7 +109,7 @@ public:
 	static uint16_t* getIHighRawValues(uint32_t& number_of_values_acquired);
 	static uint16_t* getTemperatureRawValues(uint32_t& number_of_values_acquired);
 	static uint16_t* getExtraRawValues(uint32_t& number_of_values_acquired);
-	static uint16_t* getAnalogCommValues(uint32_t& number_of_values_acquired);
+	static uint16_t* getAnalogCommRawValues(uint32_t& number_of_values_acquired);
 
 	/**
 	 * Functions to access the latest value available from a channel expressed
