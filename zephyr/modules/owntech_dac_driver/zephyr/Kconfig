@@ -2,3 +2,4 @@ config OWNTECH_DAC_DRIVER
 	bool "Enable OwnTech DAC driver"
 	default y
 	depends on !DAC
+select USE_STM32_LL_DAC

@@ -242,6 +242,67 @@ void MX_DAC1_Init(void)
 }
 
 
+void MX_DAC2_Init(void)
+{
+
+    /* USER CODE BEGIN DAC1_Init 0 */
+
+  /* USER CODE END DAC1_Init 0 */
+
+  LL_DAC_InitTypeDef DAC_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_DAC2);
+
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+  /**DAC1 GPIO Configuration
+  PA6   ------> DAC2_OUT1
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN DAC2_Init 1 */
+
+  /* USER CODE END DAC2_Init 1 */
+
+  /** DAC channel OUT1 config
+  */
+
+  LL_DAC_SetWaveAutoGeneration(DAC2, LL_DAC_CHANNEL_1, LL_DAC_WAVE_AUTO_GENERATION_NONE);
+	LL_DAC_DisableTrigger(DAC2, LL_DAC_CHANNEL_1);
+	LL_DAC_DisableDMADoubleDataMode(DAC2, LL_DAC_CHANNEL_1);
+
+	LL_DAC_ConfigOutput(DAC2, LL_DAC_CHANNEL_1, LL_DAC_OUTPUT_MODE_NORMAL, LL_DAC_OUTPUT_BUFFER_ENABLE, LL_DAC_OUTPUT_CONNECT_GPIO);
+	LL_DAC_Enable(DAC2, LL_DAC_CHANNEL_1);
+
+
+ 	LL_DAC_SetSignedFormat(DAC2, LL_DAC_CHANNEL_1, LL_DAC_SIGNED_FORMAT_DISABLE);
+  LL_DAC_SetWaveAutoGeneration(DAC2, LL_DAC_CHANNEL_1, LL_DAC_WAVE_AUTO_GENERATION_NONE);
+	LL_DAC_DisableTrigger(DAC2, LL_DAC_CHANNEL_1);
+	LL_DAC_DisableDMADoubleDataMode(DAC2, LL_DAC_CHANNEL_1);
+
+	LL_DAC_ConfigOutput(DAC2, LL_DAC_CHANNEL_1, LL_DAC_OUTPUT_MODE_NORMAL, LL_DAC_OUTPUT_BUFFER_ENABLE, LL_DAC_OUTPUT_CONNECT_GPIO);
+	LL_DAC_Enable(DAC2, LL_DAC_CHANNEL_1);
+  // DAC_InitStruct.TriggerSource = LL_DAC_TRIG_EXT_HRTIM_RST_TRG3;
+  // DAC_InitStruct.TriggerSource2 = LL_DAC_TRIG_EXT_HRTIM_STEP_TRG3;
+  // DAC_InitStruct.WaveAutoGeneration = LL_DAC_WAVE_AUTO_GENERATION_NONE;
+  // DAC_InitStruct.WaveAutoGenerationConfig = __LL_DAC_FORMAT_SAWTOOTHWAVECONFIG(LL_DAC_SAWTOOTH_POLARITY_DECREMENT, 3000, 264);
+  // DAC_InitStruct.OutputBuffer = LL_DAC_OUTPUT_BUFFER_ENABLE;
+  // DAC_InitStruct.OutputConnection = LL_DAC_OUTPUT_CONNECT_INTERNAL;
+  // DAC_InitStruct.OutputMode = LL_DAC_OUTPUT_MODE_NORMAL;
+  // LL_DAC_Init(DAC1, LL_DAC_CHANNEL_1, &DAC_InitStruct);
+  // LL_DAC_EnableTrigger(DAC1, LL_DAC_CHANNEL_1);
+  // LL_DAC_DisableDMADoubleDataMode(DAC1, LL_DAC_CHANNEL_1);
+  /* USER CODE BEGIN DAC1_Init 2 */
+
+  /* USER CODE END DAC1_Init 2 */
+
+}
+
 // HRTIM initialization 
 
 
@@ -555,6 +616,8 @@ void Init_CurrentMode_peripheral()
     MX_COMP3_Init();
     MX_DAC1_Init();
 
+    MX_DAC2_Init();
+
 
 }
 
@@ -643,6 +706,12 @@ void set_satwtooth(double set_voltage, double reset_voltage)
 
 }
 
+void set_DAC2_value(uint32_t dac_value)
+{
+  LL_DAC_ConvertData12RightAligned(DAC2, LL_DAC_CHANNEL_1, dac_value);
+}
+
+
 // Set the sawtooth peak voltage (set_voltage) and low point voltage (reset_voltage) to set the current reference for leg2 
 
 
@@ -653,13 +722,13 @@ void set_satwtooth_leg2(double set_voltage, double reset_voltage)
 
   if(Dv < 0) Dv = 0;
 
-  uint32_t set_data = (uint32_t) (4096*set_voltage)/(2.48);
+  uint32_t set_data = (uint32_t) (4096*set_voltage)/(2.048);
 
   if(set_data > 4096) set_data = 4000;
 
   LL_DAC_SetWaveSawtoothResetData(DAC1, 1, set_data);
 
-  uint32_t reset_data = (uint32_t) (Dv*65536)/(2.48*100);
+  uint32_t reset_data = (uint32_t) (Dv*65536)/(2.048*100);
   
   LL_DAC_SetWaveSawtoothStepData(DAC1, 1, reset_data); 
 

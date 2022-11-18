@@ -39,6 +39,7 @@ void set_satwtooth_leg2(double set_voltage, double reset_voltage);
 void Update_DutyCycle_CM(double reference, double measurement);
 void Update_DutyCycle_CM_leg2(double reference, double measurement);
 double p2z2_control(double yref, double y);
+void set_DAC2_value(uint32_t dac_value);
 
 #ifdef __cplusplus
 }

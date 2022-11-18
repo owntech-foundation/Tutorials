@@ -32,15 +32,14 @@
 #include "HardwareConfiguration.h"
 #include "DataAcquisition.h"
 #include "Scheduling.h"
-#include "CommunicationBus.h" 
-#include "opalib_control_pid.h"
-#include "adc.h"
+#include "CommunicationBus.h"
+#include "opalib_pid_current_mode.h"
 
 //------------ZEPHYR DRIVERS----------------------
 #include "zephyr.h"
+#include "timing/timing.h"
 #include "console/console.h"
 #include "drivers/gpio.h"
-#include "stm32_ll_adc.h"
 
 #define APPLICATION_THREAD_PRIORITY 3
 #define COMMUNICATION_THREAD_PRIORITY 5
@@ -57,45 +56,115 @@ void loop_control_task();       //code to be executed in real-time at 20kHz
 
 enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
-    IDLEMODE =0,
+    IDLEMODE = 0,
+    POWERMODE = 1
 };
 
 uint8_t received_serial_char;
 uint8_t mode = IDLEMODE;
 
 //--------------USER VARIABLES DECLARATIONS----------------------
+timing_t start_time, end_time;
+static float32_t kp = 0.1;
+static float32_t ki = 200;
 
-uint32_t dac_value;
+static float32_t voltage_reference = 25;
 
+static float32_t V1_low_value; 
+static float32_t I1_low_value;
+static float32_t V2_low_value;
+static float32_t I2_low_value;
+static float32_t V_High_value;
+
+static float32_t meas_data; //temp storage meas value (ctrl task)
+static float32_t vRef = 25.0;
+static float32_t pcc_max;
+static float32_t pcc_min;
+
+typedef struct myRecord {
+    float32_t v1_low;
+    float32_t v2_low;
+    float32_t vHigh;
+    float32_t iHigh;
+    float32_t i1_low;
+    float32_t i2_low;
+    float32_t iRef;
+    float32_t vRef; 
+    uint64_t tCalc;
+} record_t ;
+record_t myRecords[0x3FF];
+
+// 2p2z for 4ms step response
+// const float32_t Az[3] = {1.000000000000000,  -0.6566,  -0.3434};
+// const float32_t Bz[3] = {-0.001687,   0.004444,  0.006131};
+
+// 2p2z for 2ms step response
+
+const float32_t Az[3] = {1.000000000000000,  - 0.6566,  -0.3434};
+const float32_t Bz[3] = {0.2763,   0.02747,  - 0.2488};
+
+
+
+float32_t p2z2_control_v2(float32_t yref, float32_t y, bool enable)
+{
+    static float32_t e[3] = {0.0, 0.0, 0.0};
+    static float32_t u[3] = {0.0, 0.0, 0.0};
+    int kLoop;
+    float32_t reset_data;
+
+    if (enable)
+    {
+        e[0] = yref - y;
+
+        u[0] = Bz[0] * e[0] + Bz[1] * e[1] + Bz[2] * e[2] - Az[1] * u[1] - Az[2] * u[2];
+
+        // if (u[0] < 0.1) u[0] = 0.1;
+        // if (u[0] > 20.0) u[0] = 20.0;
+        for (kLoop = 2; kLoop > 0; --kLoop)
+        {
+            u[kLoop] = u[kLoop - 1];
+            e[kLoop] = e[kLoop - 1];
+        }
+    }
+    else
+    {
+        for (kLoop = 0; kLoop < 3; kLoop++)
+        {
+            e[kLoop] = 0.0;
+            u[kLoop] = 0.0;
+        }
+    }
+    return u[0];
+}
 
 //---------------------------------------------------------------
 
+static uint32_t control_task_period = 100; //[us] period of the control task
+static bool pwm_enable = false; //[bool] state of the sWM (ctrl task)
+static uint16_t kTab;
+float32_t iRef;
+uint32_t dac_ref;
 
 //---------------SETUP FUNCTIONS----------------------------------
 
 void setup_hardware()
 {
-    hwConfig.setBoardVersion(TWIST_v_1_1_2);
+    hwConfig.setBoardVersion(TWIST_v_1_1_2);  
     hwConfig.configureAdcDefaultAllMeasurements();
-    commBus.initAnalogComm();
-    
-    // hwConfig.initDacConstValue(2);
-
-	// const char* adc4_channels[] =
-	// {
-	// 	"ANALOG_COMM"
-	// };
-
-	// hwConfig.configureAdcChannels(4, adc4_channels, 1);
-
-
-
+    console_init();
+    Init_CurrentMode_peripheral();
+    // commBus.initAnalogComm();
+    //Init_CurrentMode_PID(kp, ki, control_task_period);
+    // timing_init();
     console_init();
 }
 
 void setup_software()
 {
+    // timing_start();
     dataAcquisition.start();
+    scheduling.startControlTask(loop_control_task, control_task_period);
+    scheduling.startCommunicationTask(loop_communication_task,COMMUNICATION_THREAD_PRIORITY);
     scheduling.startApplicationTask(loop_application_task,APPLICATION_THREAD_PRIORITY);
 }
 
@@ -103,50 +172,137 @@ void setup_software()
 
 void loop_communication_task()
 {
-    while(1) {
+     while(1) {
+        received_serial_char = console_getchar();
+        switch (received_serial_char) {
+            case 'h':
+                //----------SERIAL INTERFACE MENU-----------------------
+	        printk(" ________________________________________\n");
+                printk("|     ------- MENU ---------             |\n");
+                printk("|     press i : idle mode                |\n");
+                printk("|     press s : serial mode              |\n");
+                printk("|     press p : power mode               |\n");
+                printk("|     press u : duty cycle UP            |\n");
+                printk("|     press d : duty cycle DOWN          |\n");
+                printk("|________________________________________|\n\n");
+                //------------------------------------------------------
+                break;
+            case 'i':
+                printk("idle mode\n");
+                mode = IDLEMODE;
+                break;
+            case 'p':
+                printk("power mode\n");
+                mode = POWERMODE;
+                break;
+            case 'u':
+                vRef = vRef + 1.0;
+                printk("up %f\n", vRef);
+                printk("pcc_max = %f\n", pcc_max);
+                printk("pcc_min = %f\n", pcc_min);
+                printk("kTab = %hu\n", kTab);
+                break;
+            case 'd' : 
+                vRef = vRef - 1.0;
+                printk("down %f\n", vRef);
+            default:
+                break;
 
+        }
     }
+
 }
+
 
 
 void loop_application_task()
 {
+    uint8_t k;
     while(1){
-
-        // float32_t converted_value=0;
-
-
         hwConfig.setLedToggle();
-        if(dac_value>3000) dac_value = 1000;
-        commBus.setAnalogCommValue(dac_value);        
-
-        // uint32_t data_count;
-        // uint16_t* buffer;
-        // buffer = dataAcquisition.getAnalogCommRawValues(data_count);
-        // uint16_t raw_value = buffer[data_count - 1];
-        
-        //gets the data from the analog communication
-        float32_t converted_value = commBus.getAnalogCommValue();
-        // float32_t converted_value = dataAcquisition.getAnalogComm();
-
-
-
-        printk("%f:", converted_value);
-        // printk("%d:", raw_value);
-        printk("%d\n", dac_value);
-        dac_value = dac_value+100;
-
-        commBus.triggerAnalogComm();
-        // LL_ADC_REG_StartConversion(ADC4);
-
-        k_msleep(100);
-    }
+        printk("%f:",vRef);
+        printk("%f:",iRef);
+        printk("%d\n",dac_ref);
+        k_msleep(500);
+        }        
 }
-
 
 void loop_control_task()
 {
-  //loop control task goes here
+    float32_t iMin;
+    uint64_t total_cycles;
+    volatile uint64_t total_ns;
+    // start_time = timing_counter_get();
+    meas_data = dataAcquisition.getV1Low();
+    if (meas_data != -10000)
+        V1_low_value = meas_data;
+
+    meas_data = dataAcquisition.getI1Low();
+    if (meas_data != -10000)
+        I1_low_value = meas_data;
+    
+    meas_data = dataAcquisition.getI2Low();
+    if (meas_data != -10000)
+        I2_low_value = meas_data;
+
+    meas_data = dataAcquisition.getV2Low();
+    if (meas_data != -10000)
+        V2_low_value = meas_data;
+
+    meas_data = dataAcquisition.getVHigh();
+    if (meas_data != -10000)
+        V_High_value = meas_data;
+
+    if (mode == IDLEMODE)
+    {
+        pwm_enable = false;
+        iRef = p2z2_control_v2(vRef, V1_low_value, false);
+        Disable_CurrentMode();
+        Disable_CurrentMode_leg2();
+        kTab = 0;
+    }
+    else if (mode == POWERMODE)
+    {
+
+        if (!pwm_enable)
+        {
+            pwm_enable = true;
+            Enable_CurrentMode();
+            Enable_CurrentMode_leg2();
+        }
+        if (kTab == 100)
+            vRef = 30.0;
+        iRef = p2z2_control_v2(vRef, V1_low_value, true);
+        if (iRef > 10.0)
+            iRef = 10.0;
+        iMin = iRef - 2.4;
+        if (iMin < 0.0) iMin =  0.0;
+
+        // dac_ref = iRef*400;
+        pcc_max = ((iRef * 0.1) + 1.053);
+        pcc_min = ((iMin * 0.1) + 1.053);
+        // dac_ref = (4096*pcc_max)/(2.048);
+        dac_ref=dac_ref+100;
+        if (dac_ref == 4000) dac_ref = 0;
+        set_DAC2_value(dac_ref);
+        
+        set_satwtooth(pcc_max, pcc_min);
+        set_satwtooth_leg2(pcc_max, pcc_min);
+        //Update_DutyCycle_CM(voltage_reference, V1_low_value);
+        // Update_DutyCy   cle_CM_leg2(voltage_reference, V2_low_value);
+    }
+    // end_time = timing_counter_get();
+    // total_cycles = timing_cycles_get(&start_time, &end_time);
+    // total_ns = timing_cycles_to_ns(total_cycles);
+    myRecords[kTab].iRef = iRef;
+    myRecords[kTab].v1_low = V1_low_value;
+    myRecords[kTab].v2_low = V2_low_value;
+    myRecords[kTab].i1_low = I1_low_value;
+    myRecords[kTab].i2_low = I2_low_value;
+    myRecords[kTab].vHigh = V_High_value;
+    myRecords[kTab].tCalc = total_ns;
+    myRecords[kTab].vRef = vRef;
+    if (kTab < 0x1FF) kTab++;
 }
 
 /**
