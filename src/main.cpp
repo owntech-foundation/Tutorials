@@ -61,7 +61,7 @@ enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERT
 };
 
 uint8_t received_serial_char;
-uint8_t mode = IDLEMODE;
+uint8_t mode = POWERMODE;
 
 //--------------USER VARIABLES DECLARATIONS----------------------
 timing_t start_time, end_time;
@@ -144,6 +144,7 @@ static bool pwm_enable = false; //[bool] state of the sWM (ctrl task)
 static uint16_t kTab;
 float32_t iRef;
 uint32_t dac_ref;
+uint32_t meas_dac_ref;
 
 //---------------SETUP FUNCTIONS----------------------------------
 
@@ -153,7 +154,7 @@ void setup_hardware()
     hwConfig.configureAdcDefaultAllMeasurements();
     console_init();
     Init_CurrentMode_peripheral();
-    // commBus.initAnalogComm();
+    commBus.initAnalogComm();
     //Init_CurrentMode_PID(kp, ki, control_task_period);
     // timing_init();
     console_init();
@@ -188,23 +189,23 @@ void loop_communication_task()
                 //------------------------------------------------------
                 break;
             case 'i':
-                printk("idle mode\n");
+                // printk("idle mode\n");
                 mode = IDLEMODE;
                 break;
             case 'p':
-                printk("power mode\n");
+                // printk("power mode\n");
                 mode = POWERMODE;
                 break;
             case 'u':
                 vRef = vRef + 1.0;
-                printk("up %f\n", vRef);
-                printk("pcc_max = %f\n", pcc_max);
-                printk("pcc_min = %f\n", pcc_min);
-                printk("kTab = %hu\n", kTab);
+                // printk("up %f\n", vRef);
+                // printk("pcc_max = %f\n", pcc_max);
+                // printk("pcc_min = %f\n", pcc_min);
+                // printk("kTab = %hu\n", kTab);
                 break;
             case 'd' : 
                 vRef = vRef - 1.0;
-                printk("down %f\n", vRef);
+                // printk("down %f\n", vRef);
             default:
                 break;
 
@@ -219,10 +220,13 @@ void loop_application_task()
 {
     uint8_t k;
     while(1){
-        hwConfig.setLedToggle();
+        if(mode==IDLEMODE) hwConfig.setLedOff;
+        if(mode==POWERMODE) hwConfig.setLedToggle();
         printk("%f:",vRef);
+        printk("%f:",V2_low_value);
         printk("%f:",iRef);
-        printk("%d\n",dac_ref);
+        printk("%d:",dac_ref);
+        printk("%d\n",meas_dac_ref);
         k_msleep(500);
         }        
 }
@@ -253,10 +257,16 @@ void loop_control_task()
     if (meas_data != -10000)
         V_High_value = meas_data;
 
+    meas_data = dataAcquisition.getAnalogComm();
+    if (meas_data != -10000)
+        meas_dac_ref = meas_data;
+
     if (mode == IDLEMODE)
     {
         pwm_enable = false;
         iRef = p2z2_control_v2(vRef, V1_low_value, false);
+        dac_ref = 0;
+        set_DAC2_value(2048);
         Disable_CurrentMode();
         Disable_CurrentMode_leg2();
         kTab = 0;
@@ -264,30 +274,53 @@ void loop_control_task()
     else if (mode == POWERMODE)
     {
 
-        if (!pwm_enable)
-        {
-            pwm_enable = true;
-            Enable_CurrentMode();
-            Enable_CurrentMode_leg2();
-        }
-        if (kTab == 100)
-            vRef = 30.0;
-        iRef = p2z2_control_v2(vRef, V1_low_value, true);
-        if (iRef > 10.0)
-            iRef = 10.0;
-        iMin = iRef - 2.4;
-        if (iMin < 0.0) iMin =  0.0;
+        // bool master = false; 
 
-        // dac_ref = iRef*400;
-        pcc_max = ((iRef * 0.1) + 1.053);
-        pcc_min = ((iMin * 0.1) + 1.053);
-        // dac_ref = (4096*pcc_max)/(2.048);
-        dac_ref=dac_ref+100;
-        if (dac_ref == 4000) dac_ref = 0;
-        set_DAC2_value(dac_ref);
+        if(false){
+
+            if (!pwm_enable)
+            {
+                pwm_enable = true;
+                Enable_CurrentMode();
+                Enable_CurrentMode_leg2();
+            }
+
+            set_satwtooth(pcc_max, pcc_min);
+            set_satwtooth_leg2(pcc_max, pcc_min);
+            commBus.triggerAnalogComm();
+
+            if (kTab == 100)
+                vRef = 30.0;
+            iRef = p2z2_control_v2(vRef, V2_low_value, true);
+            if (iRef > 10.0) iRef = 10.0;
+            if (iRef < 0.0) iRef = 0.0;
+            iMin = iRef - 2.4;
+            if (iMin < 0.0) iMin =  0.0;
+
+            pcc_max = ((iRef * 0.1) + 1.053);
+            pcc_min = pcc_max-0.24;
+            
+            dac_ref = (4096*pcc_max)/(2.048);
+            if (dac_ref>4096) dac_ref = 4000;            
+            set_DAC2_value(dac_ref);
+
+        } else {
+
+            if (!pwm_enable)
+            {
+                pwm_enable = true;
+                Enable_CurrentMode();
+                Enable_CurrentMode_leg2();
+            }
+
+            pcc_max = (2.048*meas_dac_ref)/4096.0;
+            pcc_min = pcc_max-0.24;
+            set_satwtooth(pcc_max, pcc_min);
+            set_satwtooth_leg2(pcc_max, pcc_min);
+            commBus.triggerAnalogComm();
+        }
+        // meas_dac_ref
         
-        set_satwtooth(pcc_max, pcc_min);
-        set_satwtooth_leg2(pcc_max, pcc_min);
         //Update_DutyCycle_CM(voltage_reference, V1_low_value);
         // Update_DutyCy   cle_CM_leg2(voltage_reference, V2_low_value);
     }
