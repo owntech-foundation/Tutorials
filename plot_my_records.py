@@ -25,7 +25,7 @@ time = [100e-6*k for k in range(len(record))];
 
 fig, axs = plt.subplot_mosaic('''
 AA
-BC
+BB
 ''')
 
 axs['A'].step(time, record.vRef, label='vRef', where='post');
@@ -40,11 +40,12 @@ axs['B'].step(time, record.iHigh, label='iHigh', where='post');
 axs['B'].set_ylabel('current [A]');
 
 plt.legend();
-axs['C'].plot(time, record.tCalc*1e-3, label='calculation time');
-axs['C'].set_ylabel('computation tim [us]');
+# axs['C'].plot(time, record.tCalc*1e-3, label='calculation time');
+# axs['C'].set_ylabel('computation tim [us]');
 for ax in axs.values():
-    ax.set_xlim([0, 20e-3])
+    #ax.set_xlim([0, 20e-3])
     ax.set_xlabel('time [s]')
     ax.legend()
 fig.tight_layout()
+plt.ion()
 plt.show()

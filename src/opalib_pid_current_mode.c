@@ -633,7 +633,7 @@ void Disable_CurrentMode_leg2()
 
 // Set the sawtooth peak voltage (set_voltage) and low point voltage (reset_voltage) to set the current reference for leg1 
 
-void set_satwtooth(double set_voltage, double reset_voltage)
+void set_sawtooth(double set_voltage, double reset_voltage)
 {
 
   double Dv = set_voltage - reset_voltage; 
@@ -654,7 +654,7 @@ void set_satwtooth(double set_voltage, double reset_voltage)
 // Set the sawtooth peak voltage (set_voltage) and low point voltage (reset_voltage) to set the current reference for leg2 
 
 
-void set_satwtooth_leg2(double set_voltage, double reset_voltage)
+void set_sawtooth_leg2(double set_voltage, double reset_voltage)
 {
 
   double Dv = set_voltage - reset_voltage; 

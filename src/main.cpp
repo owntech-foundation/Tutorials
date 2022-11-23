@@ -53,6 +53,7 @@ void loop_communication_task(); //code to be executed in the slow communication 
 void loop_application_task();   //code to be executed in the fast application task
 void loop_control_task();       //code to be executed in real-time at 20kHz
 
+void voltage_ref(uint8_t reference_mode, float32_t value);
 
 enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
@@ -60,15 +61,23 @@ enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERT
     POWERMODE = 1
 };
 
+enum ref_mode {
+    STEP = 0,
+    SLOPE = 1,
+    FORCED = 2,
+    GET = 3
+};
+
 uint8_t received_serial_char;
 uint8_t mode = IDLEMODE;
 
 //--------------USER VARIABLES DECLARATIONS----------------------
+#define RECORD_SIZE 0x7FF
 timing_t start_time, end_time;
 static float32_t kp = 0.1;
 static float32_t ki = 200;
 
-static float32_t voltage_reference = 25;
+static float32_t vRef = 35;
 
 static float32_t V1_low_value;
 static float32_t I1_low_value;
@@ -82,12 +91,14 @@ static float32_t V1_low_value_filtered;
 static float32_t V2_low_value_filtered;
 
 static float32_t meas_data; //temp storage meas value (ctrl task)
-static float32_t vRef = 20.0;
 static float32_t pcc_max;
 static float32_t pcc_min;
 
 static float32_t offset = 0.0;
 
+static float32_t r_signe = 1.0;
+static float32_t r_pente = (45.- 5.) / 0.1;
+static float32_t r_step = 100.0e-6; 
 
 typedef struct myRecord {
     float32_t v1_low;
@@ -100,16 +111,22 @@ typedef struct myRecord {
     float32_t vRef; 
     uint64_t tCalc;
 } record_t ;
-record_t myRecords[0x3FF];
+record_t myRecords[RECORD_SIZE];
 
 // 2p2z for 4ms step response
-// const float32_t Az[3] = {1.000000000000000,  -0.6566,  -0.3434};
-// const float32_t Bz[3] = {-0.001687,   0.004444,  0.006131};
-
+const float32_t Az[3] = {1.000000000000000,  -0.6566,  -0.3434};
+const float32_t Bz[3] = {-0.001687,   0.004444,  0.006131};
+const float32_t DeltaI = 1.4;
 // 2p2z for 2ms step response
+// const float32_t Az[3] = {1.000000000000000,  - 0.6566,  -0.3434};
+// const float32_t Bz[3] = {0.2763,   0.02747,  - 0.2488};
 
-const float32_t Az[3] = {1.000000000000000,  - 0.6566,  -0.3434};
-const float32_t Bz[3] = {0.2763,   0.02747,  - 0.2488};
+// bandwidth ~ 1kHz, step response should be ~300us
+// designed with Q=1.67, for op point: 50V / 45V / 20Ohm
+// const float32_t Bz[3] =  {0.275916373345376,   0.047561327368578,  -0.228355045976798};
+// const float32_t Az[3] =  {1.000000000000000,  -0.656636217087587,  -0.343363782912413};
+// for Q = 1.67
+// float32_t DeltaI = 4.474;
 
 
 float32_t p2z2_control_v2(float32_t yref, float32_t y, bool enable)
@@ -145,7 +162,7 @@ float32_t p2z2_control_v2(float32_t yref, float32_t y, bool enable)
 }
 
 //---------------------------------------------------------------
-// first order filter of tau = 0.05s for 100e-6 of sampling
+// first order filter of tau = 0.1s for 100e-6 of sampling
 static float32_t a1 = -0.999000;
 static float32_t b1 = 0.0009995;
 
@@ -205,10 +222,10 @@ void loop_communication_task()
                 mode = POWERMODE;
                 break;
             case 'u':
-                vRef = vRef + 1.0;
+                voltage_ref(STEP, 1.0);
                 break;
             case 'd' : 
-                vRef = vRef - 1.0;
+                voltage_ref(STEP, -1.0);
                 break;
             case 'a':
                 break;
@@ -230,35 +247,31 @@ void loop_communication_task()
 
 void loop_application_task()
 {
+    // logging
     uint8_t k;
     while(1){
         if (mode == POWERMODE) {
             hwConfig.setLedToggle();
         }
-        printk("%f: ", V1_low_value);
-        printk("%f: ", V2_low_value);
-        printk("%f: ", V1_low_value - V2_low_value);
+        printk("%f:", V1_low_value);
         printk("%f:", I1_low_value);
-        printk("%f:", I2_low_value);
-        printk("%f:", I1_low_value - I2_low_value);
-        printk("%f:", I1_low_value_filtered);
-        printk("%f:", I2_low_value_filtered);
         printk("%f:", V1_low_value_filtered);
-        printk("%f:", V2_low_value_filtered);
-        printk("%f\n", offset);
+        printk("%f:", I1_low_value_filtered);
+        printk("%f:", vRef);
+        printk("%f:", V2_low_value);
+        printk("%f:", pcc_max);
+        printk("%f\n", pcc_min);
         k_msleep(500);
         }        
 }
 
-static float32_t r_signe = 1.0;
-static float32_t r_pente = 0.0 * (45.-20.) / 0.05;
-static float32_t r_step = 100.0e-6; 
 
 void loop_control_task()
 {
     float32_t iRef, iMin;
     uint64_t total_cycles;
     volatile uint64_t total_ns;
+
     start_time = timing_counter_get();
     meas_data = dataAcquisition.getV1Low();
     if (meas_data != -10000)
@@ -281,16 +294,17 @@ void loop_control_task()
         V_High_value = meas_data;
 
     I1_low_value_filtered =  b1 * I1_low_value - a1 * I1_low_value_filtered;
-    I2_low_value_filtered =  b1 * I2_low_value - a1 * I2_low_value_filtered;
+    // I2_low_value_filtered =  b1 * I2_low_value - a1 * I2_low_value_filtered;
     V1_low_value_filtered =  b1 * V1_low_value - a1 * V1_low_value_filtered;
-    V2_low_value_filtered =  b1 * V2_low_value - a1 * V2_low_value_filtered;
+    // V2_low_value_filtered =  b1 * V2_low_value - a1 * V2_low_value_filtered;
 
     if (mode == IDLEMODE)
     {
         pwm_enable = false;
-        iRef = p2z2_control_v2(vRef, V1_low_value, false);
+        iRef = p2z2_control_v2(0.0, 0.0, false);
+        voltage_ref(FORCED, 20.0);
         Disable_CurrentMode();
-        Disable_CurrentMode_leg2();
+        //Disable_CurrentMode_leg2();
         kTab = 0;
     }
     else if (mode == POWERMODE)
@@ -300,37 +314,21 @@ void loop_control_task()
         if (!pwm_enable)
         {
             pwm_enable = true;
+            voltage_ref(FORCED, 20.0);
             Enable_CurrentMode();
-            Enable_CurrentMode_leg2();
+            // Enable_CurrentMode_leg2();
         }
-        
-        // if (kTab == 100)
-        //     vRef = 25.0;
-        if (vRef > 40.0)
-        {
-            r_signe = -1.0;
-            vRef = 40.0;
-        }
-        if (vRef <= 20.0)
-        {
-            r_signe = 1.0;
-            vRef = 20.0;
-        }
-        vRef = vRef + r_signe * r_pente * r_step;
-        iRef = p2z2_control_v2(vRef, V2_low_value, true);
+        //if (kTab == 100) voltage_ref(FORCED, 40); 
+        voltage_ref(SLOPE, 0.0);
+        iRef = p2z2_control_v2(vRef, V1_low_value, true);
         if (iRef > 10.0)
             iRef = 10.0;
-        iMin = iRef - 2.4;
+        iMin = iRef - DeltaI;
         if (iMin < 0.0) iMin =  0.0;
-
-        pcc_max = (((iRef-offset) * 0.1) + 1.024);
-        pcc_min = (((iMin-offset) * 0.1) + 1.024);
-        set_satwtooth_leg2(pcc_max, pcc_min);
         pcc_max = ((iRef * 0.1) + 1.024);
         pcc_min = ((iMin * 0.1) + 1.024);
-        set_satwtooth(pcc_max, pcc_min);
-        //Update_DutyCycle_CM(voltage_reference, V1_low_value);
-        // Update_DutyCy   cle_CM_leg2(voltage_reference, V2_low_value);
+        set_sawtooth(pcc_max, pcc_min);
+        // set_satwtooth_leg2(pcc_max, pcc_min);
     }
     end_time = timing_counter_get();
     total_cycles = timing_cycles_get(&start_time, &end_time);
@@ -343,7 +341,39 @@ void loop_control_task()
     myRecords[kTab].vHigh = V_High_value;
     myRecords[kTab].tCalc = total_ns;
     myRecords[kTab].vRef = vRef;
-    if (kTab < 0x3FF) kTab++;
+    if (kTab < RECORD_SIZE) kTab++;
+}
+
+
+void voltage_ref(uint8_t reference_mode, float32_t value)
+{
+    float32_t vMax = 40.0;
+    float32_t vMin = 5.0;
+    switch (reference_mode) {
+        case STEP:
+            vRef = vRef + value;
+        break;
+        case SLOPE:
+            if (vRef > vMax)
+            {
+                r_signe = -1.0;
+                vRef = vMax;
+            }
+            if (vRef <= vMin)
+            {
+                r_signe = 1.0;
+                vRef = vMin;
+            }
+            vRef = vRef + r_signe * r_pente * r_step;
+            break;
+        case FORCED:
+            vRef = value;
+            break;
+        case GET:
+        break;
+        default:
+        break;
+    }
 }
 
 /**

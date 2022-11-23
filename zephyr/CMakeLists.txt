@@ -1,3 +1,6 @@
+# to generate compile_commands.json file
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Macro to list all subdirectories in a specified directory
 MACRO(SUBDIRLIST result curdir)
   FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)
