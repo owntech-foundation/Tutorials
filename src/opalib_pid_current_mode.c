@@ -736,6 +736,40 @@ void Update_DutyCycle_CM_leg2(double reference, double measurement)
 
 }
 
+void sync_master_init()
+{
+    // SYNCOUT[1:0] and SYNCSRC[1:0] bitfield configuration in HRTIM_MCR
+    LL_HRTIM_ConfigSyncOut(HRTIM1, LL_HRTIM_SYNCOUT_POSITIVE_PULSE, LL_HRTIM_SYNCOUT_SRC_MASTER_START);
+
+    // HRTIM_SCOUT pin configuration
+    LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+
+	LL_GPIO_SetPinMode      (GPIOB, LL_GPIO_PIN_1, LL_GPIO_MODE_ALTERNATE);
+	LL_GPIO_SetPinSpeed     (GPIOB, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+	LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_1, LL_GPIO_OUTPUT_PUSHPULL);
+	LL_GPIO_SetPinPull      (GPIOB, LL_GPIO_PIN_1, LL_GPIO_PULL_NO);
+	LL_GPIO_SetAFPin_0_7    (GPIOB, LL_GPIO_PIN_1, LL_GPIO_AF_13);
+}
+
+void sync_slave_init()
+{
+    //  HRTIM synchronization input source
+    LL_HRTIM_SetSyncInSrc(HRTIM1, LL_HRTIM_SYNCIN_SRC_EXTERNAL_EVENT);
+
+    // Enable the master timer reset when receiving a synchronization input event
+    LL_HRTIM_TIM_EnableResetOnSync(HRTIM1, LL_HRTIM_TIMER_MASTER);
+
+    // HRTIM_SCIN pin configuration
+    LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+
+	LL_GPIO_SetPinMode      (GPIOB, LL_GPIO_PIN_6, LL_GPIO_MODE_ALTERNATE);
+	LL_GPIO_SetPinSpeed     (GPIOB, LL_GPIO_PIN_6, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+	LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_6, LL_GPIO_OUTPUT_PUSHPULL);
+	LL_GPIO_SetPinPull      (GPIOB, LL_GPIO_PIN_6, LL_GPIO_PULL_NO);
+	LL_GPIO_SetAFPin_0_7    (GPIOB, LL_GPIO_PIN_6, LL_GPIO_AF_12);
+}
+
+
 // Control of the output voltage in leg1 with a 2p2z controller
 
 // double p2z2_control(double yref, double y)
