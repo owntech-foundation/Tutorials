@@ -34,12 +34,7 @@
 #include "Scheduling.h"
 
 //------------ZEPHYR DRIVERS----------------------
-#include "zephyr.h"
 #include "console/console.h"
-
-
-#define APPLICATION_THREAD_PRIORITY 3
-#define COMMUNICATION_THREAD_PRIORITY 5
 
 //--------------SETUP FUNCTIONS DECLARATION-------------------
 void setup_hardware(); //setups the hardware peripherals of the system
@@ -95,9 +90,9 @@ void loop_communication_task()
 void loop_application_task()
 {
         printk("Hello World! \n");
-        hwConfig.setLedToggle();  
-        
-        k_msleep(100);    
+        hwConfig.setLedToggle(); 
+
+        scheduling.suspendCurrentTaskMs(100); 
 }
 
 
