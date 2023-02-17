@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 LAAS-CNRS
+ * Copyright (c) 2022-2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 /**
- * @date   2022
+ * @date   2023
  * @author Clément Foucher <clement.foucher@laas.fr>
  */
 
@@ -33,7 +33,13 @@
 #include <zephyr.h>
 
 
+/////
+// Public types
+
 typedef void (*task_function_t)();
+
+typedef enum { source_uninitialized, source_hrtim, source_tim6 } scheduling_interrupt_source_t;
+
 
 /////
 // Static class definition
@@ -46,24 +52,48 @@ public:
 	 * execute a periodic, non-interruptible user task.
 	 * Use this function to define such a task.
 	 * Only one task of this kind can be defined.
+	 * This function can be used to redefine (replace) a
+	 * previously defined uninterruptible synchronous task,
+	 * but the previously defined task must have been suspended
+	 * (or never started). An error will be returned if the
+	 * previously defined task is still running.
 	 *
 	 * @param periodic_task Pointer to the void(void) function
 	 *        to be executed periodically.
 	 * @param task_period_us Period of the function in µs.
 	 *        Allowed range: 1 to 6553 µs.
-	 *        Value is ignored if first parameter is NULL.
+	 *        If interrupt source is HRTIM, this value MUST be an
+	 *        integer multiple of the HRTIM period.
+	 * @param int_source Interrupt source that triggers the task.
+	 *        By default, the HRTIM is the source, but this optional
+	 *        parameter can be provided to set TIM6 as the source in
+	 *        case the HRTIM is not used or if the task can't be
+	 *        correlated to an HRTIM event.
+	 *        Allowed values are source_hrtim and source_tim6.
 	 * @return 0 if everything went well,
-	 * -1 if there was an error defining the task.
-	 * An error can occur notably when an uninterruptible
-	 * task has already been defined previously.
+	 *         -1 if there was an error defining the task.
+	 *         An error can occur notably when an uninterruptible
+	 *         task has already been defined previously.
 	 */
-	int8_t defineUninterruptibleSynchronousTask(void (*periodic_task)(), uint32_t task_period_us);
+	int8_t defineUninterruptibleSynchronousTask(task_function_t periodic_task, uint32_t task_period_us, scheduling_interrupt_source_t int_source = source_hrtim);
 
 	/**
 	 * @brief Use this function to start the previously defined
 	 * uninterruptible synchronous task.
-	*/
+	 * If Data Acquisition was not started previously,
+	 * starting the uninterruptible task will start it.
+	 * Thus, make sure all ADC configuration has been carried
+	 * out before starting the uninterruptible task.
+	 */
 	void startUninterruptibleSynchronousTask();
+
+	/**
+	 * @brief Stop the previously started uninterruptible
+	 * synchronous task.
+	 * The task can be then resumed by calling
+	 * startAsynchronousTask() again.
+	 */
+	void stopUninterruptibleSynchronousTask();
 
 
 #ifdef CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS
@@ -75,21 +105,33 @@ public:
 	 *
 	 * @param routine Pointer to the void(void) function
 	 *        that will act as the task main function.
-	 * @return Number assigned to the task. Will be -1
-	 * if max number of asynchronous task has been reached.
-	 * In such a case, the task definition is cancelled.
-	 * Increase maximum number of asynchronous tasks in
-	 * prj.conf if required.
+	 * @return Number assigned to the task. Will be -1 if max
+	 *         number of asynchronous task has been reached.
+	 *         In such a case, the task definition is ignored.
+	 *         Increase maximum number of asynchronous tasks
+	 *         in prj.conf if required.
 	 */
 	int8_t defineAsynchronousTask(task_function_t routine);
 
 	/**
 	 * @brief Use this function to start a previously defined
 	 * asynchronous task using its task number.
+	 *
+	 * @param task_number Number of the task to start, obtained
+	 *        using the defineAsynchronousTask() function.
 	 */
 	void startAsynchronousTask(uint8_t task_number);
 
-#endif // CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS
+	/**
+	 * @brief Use this function to stop a previously started
+	 * asynchronous task using its task number.
+	 * The task can be then resumed by calling
+	 * startAsynchronousTask() again.
+	 *
+	 * @param task_number Number of the task to start, obtained
+	 *        using the defineAsynchronousTask() function.
+	 */
+	void stopAsynchronousTask(uint8_t task_number);
 
 	/**
 	 * @brief This function allows to suspend an asynchronous
@@ -112,6 +154,8 @@ public:
 	 * DO NOT use this function in a synchronous task!
 	 */
 	void suspendCurrentTaskUs(uint32_t duration_us);
+
+#endif // CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS
 
 private:
 	static const int DEFAULT_PRIORITY;

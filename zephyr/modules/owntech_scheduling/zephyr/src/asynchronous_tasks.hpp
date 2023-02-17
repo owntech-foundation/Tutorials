@@ -26,15 +26,20 @@
 #ifndef ASYNCHRONOUSTASKS_HPP_
 #define ASYNCHRONOUSTASKS_HPP_
 
-#ifdef CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS
 
+// Stdlib
+#include <stdint.h>
 
 // OwnTech Power API
 #include "Scheduling.h"
 
 
+#ifdef CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS
+
+
 int8_t scheduling_define_asynchronous_task(task_function_t routine);
 void scheduling_start_asynchronous_task(uint8_t task_number);
+void scheduling_stop_asynchronous_task(uint8_t task_number);
 
 
 #endif // CONFIG_OWNTECH_SCHEDULING_ENABLE_ASYNCHRONOUS_TASKS

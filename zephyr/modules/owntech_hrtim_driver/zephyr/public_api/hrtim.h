@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 LAAS-CNRS
+ * Copyright (c) 2021-2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,9 @@
  * SPDX-License-Identifier: LGLPV2.1
  */
 
-/**
+/*
+ * @date   2023
+ *
  * @author Clément Foucher <clement.foucher@laas.fr>
  * @author Luiz Villa <luiz.villa@laas.fr>
  * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
@@ -67,6 +69,8 @@ typedef enum {
     MSTR = LL_HRTIM_TIMER_MASTER
 } hrtim_tu_t;
 
+typedef void(*hrtim_callback_t)();
+
 
 /**
  * @brief   Set the duty-cycle, dead-time and phase shift for a given
@@ -92,7 +96,81 @@ void hrtim_init_voltage_leg1_boost_leg2_buck(hrtim_tu_t leg1_tu, hrtim_tu_t leg2
 void hrtim_init_voltage_leg1_boost_leg2_buck_center_aligned(hrtim_tu_t leg1_tu, hrtim_tu_t leg2_tu);
 void hrtim_update_adc_trig_interleaved(uint16_t new_trig, hrtim_tu_t leg1_tu, hrtim_tu_t leg2_tu);
 
+/**
+ * @brief Configure interrupt on repetition counter for the chosen timing unit
+ * @param tu_src timing unit which will be the source for the ISR:
+ *         @arg @ref MSTR
+ *         @arg @ref TIMA
+ *         @arg @ref TIMB
+ *         @arg @ref TIMC
+ *         @arg @ref TIMD
+ *         @arg @ref TIME
+ *         @arg @ref TIMF
+ * @param repetition value between 1 and 256 for the repetition counter:
+ *        period of the event wrt. periods of the HRTIM.
+ *        E.g. when set to 10, one event will be triggered every 10 HRTIM period.
+ * @param callback Pointer to a void(void) function that will be called
+ *        when the event is triggerred.
+ */
+void hrtim_PeriodicEvent_configure(hrtim_tu_t tu_src, uint32_t repetition, hrtim_callback_t callback);
 
+/**
+ * @brief Enable interrupt on repetition counter for the chosen timing unit.
+ *        The periodic event configuration must have been done previously.
+ * @param tu_src timing unit which will be the source for the ISR:
+ *         @arg @ref MSTR
+ *         @arg @ref TIMA
+ *         @arg @ref TIMB
+ *         @arg @ref TIMC
+ *         @arg @ref TIMD
+ *         @arg @ref TIME
+ *         @arg @ref TIMF
+ */
+void hrtim_PeriodicEvent_en(hrtim_tu_t tu_src);
+
+/**
+ * @brief Disable interrupt on repetition counter for the chosen timing unit
+ * @param tu_src timing unit which will be the source for the ISR:
+ *         @arg @ref MSTR
+ *         @arg @ref TIMA
+ *         @arg @ref TIMB
+ *         @arg @ref TIMC
+ *         @arg @ref TIMD
+ *         @arg @ref TIME
+ *         @arg @ref TIMF
+ */
+void hrtim_PeriodicEvent_dis(hrtim_tu_t tu_src);
+
+/**
+ * @brief Change the repetition counter value to control the ISR interrupt
+ * @param tu_src timing unit which will be the source for the ISR:
+ *         @arg @ref MSTR
+ *         @arg @ref TIMA
+ *         @arg @ref TIMB
+ *         @arg @ref TIMC
+ *         @arg @ref TIMD
+ *         @arg @ref TIME
+ *         @arg @ref TIMF
+ * @param repetion value between 1 and 256 for the repetition counter:
+ * period of the event wrt. periods of the HRTIM.
+ * E.g. when set to 10, one event will be triggered every 10 HRTIM period.
+ */
+void hrtim_PeriodicEvent_SetRep(hrtim_tu_t tu_src, uint32_t repetition);
+
+/**
+ * @brief Get the current value of the repetition counter.
+ * @param tu_src timing unit which will be the source for the ISR:
+ *         @arg @ref MSTR
+ *         @arg @ref TIMA
+ *         @arg @ref TIMB
+ *         @arg @ref TIMC
+ *         @arg @ref TIMD
+ *         @arg @ref TIME
+ *         @arg @ref TIMF
+ * @return Value between 1 and 256 for the repetition counter:
+ * period of the event wrt. periods of the HRTIM.
+ */
+uint32_t hrtim_PeriodicEvent_GetRep(hrtim_tu_t tu_src);
 
 #ifdef __cplusplus
 }

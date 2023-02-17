@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 LAAS-CNRS
+ * Copyright (c) 2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,42 +18,25 @@
  */
 
 /**
+ * @date   2023
  * @author Clément Foucher <clement.foucher@laas.fr>
  *
- * @brief  This file provides DMA configuration.
+ * Header to give access to scheduling internal API
+ * to other OwnTech modules.
+ *
+ * Only for use in OwnTech modules.
  */
 
-#ifndef DMA_H_
-#define DMA_H_
-
-
-#include <stdint.h>
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef DATA_ACQUISITION_INTERNAL_H_
+#define DATA_ACQUISITION_INTERNAL_H_
 
 
 /**
- * This function configures and starts the DMA.
- * It must only be called after all the ADCs configuration
- * has been carried out, as it uses its channels
- * configuration to determine the size of the buffers.
+ * @brief Force full dispatch.
  *
- * @param adc_count Number of configured ADCs.
+ * For internal use only, do not call in user code.
  */
-void dma_configure_and_start(uint8_t adc_count);
-
-// For debug purpose
-uint16_t* dma_get_dma1_buffer();
-uint16_t* dma_get_dma2_buffer();
-uint16_t* dma_get_dma3_buffer();
-uint16_t* dma_get_dma4_buffer();
+void data_dispatch_do_full_dispatch();
 
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif // DMA_H_
+#endif // DATA_ACQUISITION_INTERNAL_H_
