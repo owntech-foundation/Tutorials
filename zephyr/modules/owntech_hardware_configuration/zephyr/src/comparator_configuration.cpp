@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 LAAS-CNRS
+ * Copyright (c) 2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,18 +18,19 @@
  */
 
 /**
- * @date   2022
+ * @date   2023
+ *
+ * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
  * @author Clément Foucher <clement.foucher@laas.fr>
  */
 
+// OwnTech API
+#include "comparator.h"
 
-#ifndef LED_CONFIGURATION_H_
-#define LED_CONFIGURATION_H_
-
-
-void led_config_on();
-void led_config_off();
-void led_config_toggle();
+// Current file header
+#include "HardwareConfiguration.h"
 
 
-#endif // LED_CONFIGURATION_H_
+void HardwareConfiguration::comparatorInitialize(){
+	comparator_init();
+}

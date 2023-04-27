@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023 LAAS-CNRS
+ * Copyright (c) 2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -19,32 +19,37 @@
 
 /**
  * @date   2023
+ *
  * @author Clément Foucher <clement.foucher@laas.fr>
  */
 
-
-// Owntech driver
-#include "ngnd.h"
 
 // Current file header
 #include "HardwareConfiguration.h"
 
 
-static const struct device* ngnd_switch = DEVICE_DT_GET(NGND_DEVICE);
+// Public object to interact with the class
+HardwareConfiguration hwConfig;
+
+// Static class member
+hardware_version_t HardwareConfiguration::hardware_version = nucleo_G474RE;
 
 
-void HardwareConfiguration::setNgndOn()
+void HardwareConfiguration::setBoardVersion(hardware_version_t hardware_version)
 {
-	if (device_is_ready(ngnd_switch) == true)
-	{
-		ngnd_set(ngnd_switch, 1);
-	}
-}
+	HardwareConfiguration::hardware_version = hardware_version;
 
-void HardwareConfiguration::setNgndOff()
-{
-	if (device_is_ready(ngnd_switch) == true)
+	if (hardware_version == O2_v_1_1_2 || hardware_version == O2_v_0_9)
 	{
-		ngnd_set(ngnd_switch, 0);
+		uart1SwapRxTx();
+		hrtimLegTu(TIMA, TIMB);
+	}else if(hardware_version == SPIN_v_0_1){
+		uart1SwapRxTx();
+		hrtimLegTu(TIMA, TIMC);
+	}else if(hardware_version == SPIN_v_0_9 || hardware_version == TWIST_v_1_1_2){
+		hrtimLegTu(TIMA, TIMC);
+	}else if(hardware_version == nucleo_G474RE){
+		hrtimLegTu(TIMA, TIMB);
 	}
+
 }
