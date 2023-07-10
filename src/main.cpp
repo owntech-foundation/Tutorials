@@ -52,6 +52,8 @@ int8_t application_task_number; //holds the number of the application task
 enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
     IDLEMODE =0,
+    SERIALMODE
+
 };
 
 uint8_t received_serial_char;
@@ -69,32 +71,62 @@ uint8_t mode = IDLEMODE;
 void setup_hardware()
 {
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
+    console_init();
     //setup your hardware here
 }
 
 void setup_software()
 {
     application_task_number = scheduling.defineAsynchronousTask(loop_application_task);
+    communication_task_number = scheduling.defineAsynchronousTask(loop_communication_task);
     scheduling.startAsynchronousTask(application_task_number);
-    //setup your software scheduling here
+    scheduling.startAsynchronousTask(communication_task_number);
 }
 
 //---------------LOOP FUNCTIONS----------------------------------
 
 void loop_communication_task()
 {
-        //communication task code goes here
+    while(1) {
+        received_serial_char = console_getchar();
+        switch (received_serial_char) {
+            case 'h':
+                //----------SERIAL INTERFACE MENU-----------------------
+	        printk(" _____________________________________\n");
+                printk("|     ------- MENU ---------          |\n");
+                printk("|     press i : idle mode             |\n");
+                printk("|     press s : serial mode           |\n");
+                printk("|_____________________________________|\n\n");
+                //------------------------------------------------------
+                break;
+            case 'i':
+                printk("idle mode\n");
+                mode = IDLEMODE;
+                break;
+            case 's':
+                printk("serial mode\n");
+                mode = SERIALMODE;
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 
 void loop_application_task()
 {
-        printk("Hello World! \n");
-        hwConfig.setLedToggle(); 
+    while(1){
 
+        if(mode==IDLEMODE) {
+            hwConfig.setLedOff();
+
+        }else if(mode==SERIALMODE) {
+            hwConfig.setLedOn();
+        }        
         scheduling.suspendCurrentTaskMs(100); 
+    }
 }
-
 
 void loop_control_task()
 {
