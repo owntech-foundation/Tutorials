@@ -61,6 +61,7 @@ uint8_t mode = IDLEMODE;
 
 //--------------USER VARIABLES DECLARATIONS----------------------
 
+static uint32_t counter = 0; //counter variable
 
 
 //---------------------------------------------------------------
@@ -96,6 +97,8 @@ void loop_communication_task()
                 printk("|     ------- MENU ---------          |\n");
                 printk("|     press i : idle mode             |\n");
                 printk("|     press s : serial mode           |\n");
+                printk("|     press u : counter UP            |\n");
+                printk("|     press d : counter DOWN          |\n");
                 printk("|_____________________________________|\n\n");
                 //------------------------------------------------------
                 break;
@@ -106,6 +109,12 @@ void loop_communication_task()
             case 's':
                 printk("serial mode\n");
                 mode = SERIALMODE;
+                break;
+            case 'u':
+                counter++;
+                break;
+            case 'd':
+                counter--;
                 break;
             default:
                 break;
@@ -123,8 +132,11 @@ void loop_application_task()
 
         }else if(mode==SERIALMODE) {
             hwConfig.setLedOn();
-        }        
+            printk("%d\n", counter);
+        }
+        
         scheduling.suspendCurrentTaskMs(100); 
+    
     }
 }
 
