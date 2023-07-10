@@ -19,25 +19,25 @@
 
 /**
  * @date   2023
- * @author Clément Foucher <clement.foucher@laas.fr>
  *
- * Header to give access to Data Acquisition internal
- * API to other OwnTech modules.
- *
- * Only for use in OwnTech modules.
- * Do not include this header in user code.
+ * @author Luiz Villa <luiz.villa@laas.fr>
+ * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
  */
+#ifndef SYNC_H_
+#define SYNC_H_
 
-#ifndef DATA_ACQUISITION_INTERNAL_H_
-#define DATA_ACQUISITION_INTERNAL_H_
+#include <zephyr.h>
 
 
 /**
- * @brief Force full dispatch.
- *
- * For internal use only, do not call in user code.
+ * @brief    Initilializes the hrtim sync in master mode
  */
-void data_dispatch_do_full_dispatch();
+void sync_master_init();
+
+/**
+ * @brief    Initilializes the hrtim sync in slave mode
+ */
+void sync_slave_init();
 
 
-#endif // DATA_ACQUISITION_INTERNAL_H_
+#endif // SYNC_H_

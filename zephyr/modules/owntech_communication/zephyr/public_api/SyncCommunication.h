@@ -19,25 +19,38 @@
 
 /**
  * @date   2023
- * @author Clément Foucher <clement.foucher@laas.fr>
  *
- * Header to give access to Data Acquisition internal
- * API to other OwnTech modules.
- *
- * Only for use in OwnTech modules.
- * Do not include this header in user code.
+ * @author Luiz Villa <luiz.villa@laas.fr>
+ * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
  */
 
-#ifndef DATA_ACQUISITION_INTERNAL_H_
-#define DATA_ACQUISITION_INTERNAL_H_
+#ifndef SYNCCOMMUNICATION_H_
+#define SYNCCOMMUNICATION_H_
+
+#ifdef CONFIG_OWNTECH_COMMUNICATION_ENABLE_SYNC
+
+#include <stdint.h>
 
 
-/**
- * @brief Force full dispatch.
- *
- * For internal use only, do not call in user code.
- */
-void data_dispatch_do_full_dispatch();
+/////
+// Static class definition
+
+class SyncCommunication
+{
+
+public:
+	static void initMaster();
+	static void initSlave();
+};
 
 
-#endif // DATA_ACQUISITION_INTERNAL_H_
+/////
+// Public object to interact with the class
+
+extern SyncCommunication syncCommunication;
+
+
+#endif // CONFIG_OWNTECH_COMMUNICATION_ENABLE_SYNC
+
+#endif // SYNCCOMMUNICATION_H_
+

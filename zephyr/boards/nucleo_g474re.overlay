@@ -8,13 +8,8 @@
 
 // Board-related definitions
 #include "pinctrl.dtsi"
-#include "led.dtsi"
 #include "hrtim.dtsi"
 #include "adc.dtsi"
-#include "adc-channels.dtsi"
-#include "ngnd.dtsi"
-#include "can-standby-switch.dtsi"
-#include "gpio.dtsi"
 
 
 /*****************/
@@ -32,6 +27,13 @@
 &lpuart1 {
 	pinctrl-0 = <&lpuart1_tx_pa2 &lpuart1_rx_pa3>;
 	current-speed = <115200>;
+	status = "okay";
+};
+
+&usart3 {
+	pinctrl-0 = < &usart3_tx_pc10 &usart3_rx_pc11 >;
+	pinctrl-names = "default";
+	current-speed = < 21250000 >;
 	status = "okay";
 };
 

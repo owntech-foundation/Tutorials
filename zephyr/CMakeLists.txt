@@ -7,6 +7,8 @@ MACRO(SUBDIRLIST result curdir)
       LIST(APPEND dirlist ${curdir}/${child})
     ENDIF()
   ENDFOREACH()
+  # Make sure modules are always in the same order for incremental compilation
+  LIST(SORT dirlist)
   SET(${result} ${dirlist})
 ENDMACRO()
 
@@ -24,6 +26,9 @@ endif()
 
 # Board
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Enable Twist shield
+set(SHIELD twist)
 
 # Configure Zephyr
 cmake_minimum_required(VERSION 3.13.1)
