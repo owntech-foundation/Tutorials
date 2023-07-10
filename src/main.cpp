@@ -52,7 +52,8 @@ int8_t application_task_number; //holds the number of the application task
 enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
     IDLEMODE =0,
-    SERIALMODE
+    SERIALMODE,
+    POWERMODE
 
 };
 
@@ -62,6 +63,10 @@ uint8_t mode = IDLEMODE;
 //--------------USER VARIABLES DECLARATIONS----------------------
 
 static uint32_t counter = 0; //counter variable
+static float32_t duty_cycle = 0.5; //[-] duty cycle (comm task)
+static float32_t duty_cycle_step = 0.05; //[-] duty cycle step (comm task)
+static bool pwm_enable = false; //[bool] state of the PWM (ctrl task)
+static uint32_t control_task_period = 50; //[us] period of the control task
 
 
 //---------------------------------------------------------------
@@ -72,6 +77,7 @@ static uint32_t counter = 0; //counter variable
 void setup_hardware()
 {
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
+    hwConfig.initInterleavedBuckMode();
     console_init();
     //setup your hardware here
 }
@@ -80,69 +86,90 @@ void setup_software()
 {
     application_task_number = scheduling.defineAsynchronousTask(loop_application_task);
     communication_task_number = scheduling.defineAsynchronousTask(loop_communication_task);
+    scheduling.defineUninterruptibleSynchronousTask(&loop_control_task,control_task_period);
+
+
     scheduling.startAsynchronousTask(application_task_number);
     scheduling.startAsynchronousTask(communication_task_number);
+    scheduling.startUninterruptibleSynchronousTask();
 }
 
 //---------------LOOP FUNCTIONS----------------------------------
 
 void loop_communication_task()
 {
-    while(1) {
-        received_serial_char = console_getchar();
-        switch (received_serial_char) {
-            case 'h':
-                //----------SERIAL INTERFACE MENU-----------------------
-	        printk(" _____________________________________\n");
-                printk("|     ------- MENU ---------          |\n");
-                printk("|     press i : idle mode             |\n");
-                printk("|     press s : serial mode           |\n");
-                printk("|     press u : counter UP            |\n");
-                printk("|     press d : counter DOWN          |\n");
-                printk("|_____________________________________|\n\n");
-                //------------------------------------------------------
-                break;
-            case 'i':
-                printk("idle mode\n");
-                mode = IDLEMODE;
-                break;
-            case 's':
-                printk("serial mode\n");
-                mode = SERIALMODE;
-                break;
-            case 'u':
-                counter++;
-                break;
-            case 'd':
-                counter--;
-                break;
-            default:
-                break;
-        }
+    received_serial_char = console_getchar();
+    switch (received_serial_char) {
+        case 'h':
+            //----------SERIAL INTERFACE MENU-----------------------
+	        printk(" ________________________________________\n");
+            printk("|     ------- MENU ---------             |\n");
+            printk("|     press i : idle mode                |\n");
+            printk("|     press s : serial mode              |\n");
+            printk("|     press p : power mode               |\n");
+            printk("|     press u : duty cycle UP            |\n");
+            printk("|     press d : duty cycle DOWN          |\n");
+            printk("|________________________________________|\n\n");
+            //------------------------------------------------------
+
+            break;
+        case 'i':
+            printk("idle mode\n");
+            mode = IDLEMODE;
+            break;
+        case 's':
+            printk("serial mode\n");
+            mode = SERIALMODE;
+            break;
+        case 'p':
+            printk("power mode\n");
+            mode = POWERMODE;
+            pwm_enable = true;
+            break;
+        case 'u':
+            printk("duty cycle UP: %f\n", duty_cycle);
+            duty_cycle = duty_cycle + duty_cycle_step;
+            if(duty_cycle>1.0) duty_cycle = 1.0;
+            break;
+        case 'd':
+            printk("duty cycle DOWN: %f\n", duty_cycle);
+            duty_cycle = duty_cycle - duty_cycle_step;
+            if(duty_cycle<0.0) duty_cycle = 0.0;
+            break;
+        default:
+            break;
     }
 }
 
 
 void loop_application_task()
 {
-    while(1){
-
-        if(mode==IDLEMODE) {
-            hwConfig.setLedOff();
-
-        }else if(mode==SERIALMODE) {
-            hwConfig.setLedOn();
-            printk("%d\n", counter);
-        }
-        
-        scheduling.suspendCurrentTaskMs(100); 
-    
-    }
+    if(mode==IDLEMODE) {
+        hwConfig.setLedOff();
+    }else if(mode==SERIALMODE || mode==POWERMODE) {
+        hwConfig.setLedOn();
+        printk("%f \n", duty_cycle);
+    }        
+    scheduling.suspendCurrentTaskMs(100);    
 }
 
 void loop_control_task()
 {
-    //loop control task code goes here
+    if(mode==IDLEMODE || mode==SERIALMODE) 
+    {
+        pwm_enable = false;
+        hwConfig.setInterleavedOff();
+    }
+    else if(mode==POWERMODE) 
+    {
+        if(!pwm_enable) {
+            pwm_enable = true;
+            hwConfig.setInterleavedOn();
+        }
+
+        //Sends the PWM to the switches
+	hwConfig.setInterleavedDutyCycle(duty_cycle);
+    }
 }
 
 /**
