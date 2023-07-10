@@ -68,6 +68,16 @@ static float32_t duty_cycle_step = 0.05; //[-] duty cycle step (comm task)
 static bool pwm_enable = false; //[bool] state of the PWM (ctrl task)
 static uint32_t control_task_period = 50; //[us] period of the control task
 
+static float32_t V1_low_value; //store value of V1_low (app task)
+static float32_t V2_low_value; //store value of V2_low (app task)
+static float32_t Vhigh_value; //store value of Vhigh (app task)
+
+static float32_t i1_low_value; //store value of i1_low (app task)
+static float32_t i2_low_value; //store value of i2_low (app task)
+static float32_t ihigh_value; //store value of ihigh (app task)
+
+static float32_t meas_data; //temp storage meas value (ctrl task)
+
 
 //---------------------------------------------------------------
 
@@ -78,6 +88,7 @@ void setup_hardware()
 {
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
     hwConfig.initInterleavedBuckMode();
+    dataAcquisition.enableTwistDefaultChannels();
     console_init();
     //setup your hardware here
 }
@@ -146,22 +157,47 @@ void loop_application_task()
 {
     if(mode==IDLEMODE) {
         hwConfig.setLedOff();
-    }else if(mode==SERIALMODE || mode==POWERMODE) {
+    }else if(mode==SERIALMODE) {
         hwConfig.setLedOn();
-        printk("%f \n", duty_cycle);
+    }else if(mode==POWERMODE) {
+        hwConfig.setLedOn();
     }        
-    scheduling.suspendCurrentTaskMs(100);    
+    printk("%f:", duty_cycle);
+    printk("%f:", Vhigh_value);
+    printk("%f:", V1_low_value);
+    printk("%f:", V2_low_value);
+    printk("%f:", ihigh_value);
+    printk("%f:", i1_low_value);
+    printk("%f\n", i2_low_value);
+    scheduling.suspendCurrentTaskMs(100);     
 }
 
 void loop_control_task()
 {
-    if(mode==IDLEMODE || mode==SERIALMODE) 
-    {
-        pwm_enable = false;
-        hwConfig.setInterleavedOff();
-    }
-    else if(mode==POWERMODE) 
-    {
+    meas_data = dataAcquisition.getLatest(V_HIGH);
+    if(meas_data!=NO_VALUE) Vhigh_value = meas_data;
+
+    meas_data = dataAcquisition.getLatest(V1_LOW);
+    if(meas_data!=NO_VALUE) V1_low_value = meas_data;
+
+    meas_data = dataAcquisition.getLatest(V2_LOW);
+    if(meas_data!=NO_VALUE) V2_low_value= meas_data;
+
+    meas_data = dataAcquisition.getLatest(I_HIGH);
+    if(meas_data!=NO_VALUE) ihigh_value = meas_data;
+
+    meas_data = dataAcquisition.getLatest(I1_LOW);
+    if(meas_data!=NO_VALUE) i1_low_value = meas_data;
+
+    meas_data = dataAcquisition.getLatest(I2_LOW);
+    if(meas_data!=NO_VALUE) i2_low_value = meas_data;
+
+    if(mode==IDLEMODE || mode==SERIALMODE) {
+         pwm_enable = false;
+         hwConfig.setInterleavedOff();
+
+    }else if(mode==POWERMODE) {
+
         if(!pwm_enable) {
             pwm_enable = true;
             hwConfig.setInterleavedOn();
