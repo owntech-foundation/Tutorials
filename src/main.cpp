@@ -66,7 +66,7 @@ static uint32_t counter = 0; //counter variable
 static float32_t duty_cycle = 0.5; //[-] duty cycle (comm task)
 static float32_t duty_cycle_step = 0.05; //[-] duty cycle step (comm task)
 static bool pwm_enable = false; //[bool] state of the PWM (ctrl task)
-static uint32_t control_task_period = 50; //[us] period of the control task
+static uint32_t control_task_period = 5000; //[us] period of the control task
 
 static float32_t V1_low_value; //store value of V1_low (app task)
 static float32_t V2_low_value; //store value of V2_low (app task)
@@ -87,7 +87,9 @@ static float32_t meas_data; //temp storage meas value (ctrl task)
 void setup_hardware()
 {
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
-    hwConfig.initInterleavedBuckMode();
+    // hwConfig.setHrtimFrequency(200000);
+    hwConfig.initInterleavedBuckModeCenterAligned();
+    hwConfig.setHrtimAdcTrigInterleaved(0.06);
     dataAcquisition.enableTwistDefaultChannels();
     console_init();
     //setup your hardware here
@@ -95,6 +97,14 @@ void setup_hardware()
 
 void setup_software()
 {
+    dataAcquisition.setParameters(V1_LOW,0.045022,-91.679);
+    dataAcquisition.setParameters(V2_LOW,0.044907,-91.430);
+    dataAcquisition.setParameters(V_HIGH,0.066457,-0.279);
+    dataAcquisition.setParameters(I1_LOW,0.004563,-9.367);
+    dataAcquisition.setParameters(I2_LOW,0.005507,-11.351);
+    dataAcquisition.setParameters(I_HIGH,0.005171,-10.597);
+
+
     application_task_number = scheduling.defineAsynchronousTask(loop_application_task);
     communication_task_number = scheduling.defineAsynchronousTask(loop_communication_task);
     scheduling.defineUninterruptibleSynchronousTask(&loop_control_task,control_task_period);
@@ -125,25 +135,20 @@ void loop_communication_task()
 
             break;
         case 'i':
-            printk("idle mode\n");
             mode = IDLEMODE;
             break;
         case 's':
-            printk("serial mode\n");
             mode = SERIALMODE;
             break;
         case 'p':
-            printk("power mode\n");
             mode = POWERMODE;
             pwm_enable = true;
             break;
         case 'u':
-            printk("duty cycle UP: %f\n", duty_cycle);
             duty_cycle = duty_cycle + duty_cycle_step;
             if(duty_cycle>1.0) duty_cycle = 1.0;
             break;
         case 'd':
-            printk("duty cycle DOWN: %f\n", duty_cycle);
             duty_cycle = duty_cycle - duty_cycle_step;
             if(duty_cycle<0.0) duty_cycle = 0.0;
             break;
