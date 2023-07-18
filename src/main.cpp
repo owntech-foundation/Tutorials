@@ -86,11 +86,17 @@ static float32_t meas_data; //temp storage meas value (ctrl task)
 
 void setup_hardware()
 {
-    hwConfig.setBoardVersion(TWIST_v_1_1_2);
-    // hwConfig.setHrtimFrequency(200000);
-    hwConfig.initInterleavedBuckModeCenterAligned();
+    hwConfig.setBoardVersion(SPIN_v_1_0);
+    // hwConfig.initInterleavedBuckModeCenterAligned();
+    hwConfig.InitAllLegsBuckMode();
+    // hwConfig.initInterleavedBuckModeCenterAligned();
+    // hwConfig.setHrtimFrequency(40000);
     hwConfig.setHrtimAdcTrigInterleaved(0.06);
     dataAcquisition.enableTwistDefaultChannels();
+    hwConfig.setLeg1PhaseShiftCenterAligned(0);
+    hwConfig.setLeg2PhaseShiftCenterAligned(180);
+    hwConfig.setLeg3PhaseShiftCenterAligned(180);
+    hwConfig.setLeg5PhaseShiftCenterAligned(180);
     console_init();
     //setup your hardware here
 }
@@ -142,7 +148,6 @@ void loop_communication_task()
             break;
         case 'p':
             mode = POWERMODE;
-            pwm_enable = true;
             break;
         case 'u':
             duty_cycle = duty_cycle + duty_cycle_step;
@@ -199,17 +204,30 @@ void loop_control_task()
 
     if(mode==IDLEMODE || mode==SERIALMODE) {
          pwm_enable = false;
-         hwConfig.setInterleavedOff();
+        //  hwConfig.setInterleavedOff();
+         hwConfig.setLeg1Off();
+         hwConfig.setLeg2Off();
+         hwConfig.setLeg3Off();
+         hwConfig.setLeg4Off();
+         hwConfig.setLeg5Off();
 
     }else if(mode==POWERMODE) {
 
         if(!pwm_enable) {
             pwm_enable = true;
-            hwConfig.setInterleavedOn();
+         hwConfig.setLeg1On();
+         hwConfig.setLeg2On();
+         hwConfig.setLeg3On();
+         hwConfig.setLeg4On();
+         hwConfig.setLeg5On();
         }
 
         //Sends the PWM to the switches
-	hwConfig.setInterleavedDutyCycle(duty_cycle);
+        hwConfig.setLeg1DutyCycle(duty_cycle);
+        hwConfig.setLeg2DutyCycle(duty_cycle);
+        hwConfig.setLeg3DutyCycle(duty_cycle);
+        hwConfig.setLeg4DutyCycle(duty_cycle);
+        hwConfig.setLeg5DutyCycle(duty_cycle);
     }
 }
 
