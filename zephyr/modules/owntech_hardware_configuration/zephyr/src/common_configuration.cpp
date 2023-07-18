@@ -48,6 +48,8 @@ void HardwareConfiguration::setBoardVersion(hardware_version_t hardware_version)
 		hrtimLegTu(TIMA, TIMC);
 	}else if(hardware_version == SPIN_v_0_9 || hardware_version == TWIST_v_1_1_2){
 		hrtimLegTu(TIMA, TIMC);
+	}else if(hardware_version == SPIN_v_1_0){
+		hrtimAllLegs();
 	}else if(hardware_version == nucleo_G474RE){
 		hrtimLegTu(TIMA, TIMB);
 	}

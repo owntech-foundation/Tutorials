@@ -208,3 +208,10 @@ void hrtim_init_voltage_leg1_boost_leg2_buck_center_aligned(hrtim_tu_t leg1_tu, 
 	leg_init_center_aligned(false,true, leg1_tu, leg2_tu);
 	_hrtim_init_events_center_aligned(leg1_tu, leg2_tu);
 }
+
+void hrtim_init_voltage_legs()
+{
+	leg_init_all_center_aligned();
+	_hrtim_init_events_center_aligned(TIMA, TIMC);
+}
+

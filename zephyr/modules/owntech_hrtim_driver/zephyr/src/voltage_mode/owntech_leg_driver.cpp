@@ -122,6 +122,33 @@ uint16_t leg_init_center_aligned(bool leg1_upper_switch_convention, bool leg2_up
 }
 
 /**
+ * This function Initialize the hrtim and all the legs
+ * with the chosen convention for the switch controlled
+ * on the power converter to a frequency of 200kHz
+ * with the counter on up-down mode (center-alligned)
+ * Must be initialized in first position
+ */
+uint16_t leg_init_all_center_aligned()
+{
+
+    /* ensures that timing_unit can be used as leg identifier */
+    for (unsigned int i = 0; i < LEG_NUMOF; i++)
+    {
+        leg_conf[_TU_num(leg_config[i].timing_unit)] = leg_config[i];
+    }
+  
+    period = hrtim_init_all_updwn(0, &frequency, LEG_DEFAULT_DT);
+
+    dead_time = (uint16_t)((((double)period)*LEG_DEFAULT_DT*((double)frequency))/1000000000.0); //this line is overflow safe
+
+    min_pw = (period * min_duty_cycle) + dead_time;
+    max_pw = (period * max_duty_cycle) + dead_time;
+    
+    return period/2;
+}
+
+
+/**
  * This function Initialize in current mode the hrtim and all the legs
  * with the chosen convention for the switch controlled on the power 
  * converter to a frequency of 200kHz

@@ -82,6 +82,9 @@ uint16_t leg_init(bool leg1_upper_switch_convention, bool leg2_upper_switch_conv
  */
 uint16_t leg_init_center_aligned(bool leg1_upper_switch_convention, bool leg2_upper_switch_convention, hrtim_tu_t leg1_tu, hrtim_tu_t leg2_tu);
 
+uint16_t leg_init_all_center_aligned();
+
+
 /**
  * @brief   Set the PWM pulse width for a given leg device
  *

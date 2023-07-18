@@ -36,10 +36,18 @@ uint16_t HardwareConfiguration::hrtimPwmPeriod;
 uint16_t HardwareConfiguration::hrtimPwmPhaseShift;
 uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg1;
 uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg2;
+uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg3;
+uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg4;
+uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg5;
+uint16_t HardwareConfiguration::hrtimPwmPhaseShiftLeg6;
 bool     HardwareConfiguration::hrtimFullBridgeBipolarMode;
 
 hrtim_tu_t HardwareConfiguration::hrtimLeg1Tu;
 hrtim_tu_t HardwareConfiguration::hrtimLeg2Tu;
+hrtim_tu_t HardwareConfiguration::hrtimLeg3Tu;
+hrtim_tu_t HardwareConfiguration::hrtimLeg4Tu;
+hrtim_tu_t HardwareConfiguration::hrtimLeg5Tu;
+hrtim_tu_t HardwareConfiguration::hrtimLeg6Tu;
 
 
 
@@ -47,6 +55,20 @@ void HardwareConfiguration::hrtimLegTu(hrtim_tu_t tu1, hrtim_tu_t tu2)
 {
 	hrtimLeg1Tu = tu1;
 	hrtimLeg2Tu = tu2;
+}
+
+void HardwareConfiguration::hrtimAllLegs()
+{
+	hrtimLeg1Tu = TIMA;
+	hrtimLeg2Tu = TIMC;
+	hrtimLeg3Tu = TIME;
+	hrtimLeg4Tu = TIMD;
+	hrtimLeg5Tu = TIMF;
+}
+
+void HardwareConfiguration::InitAllLegsBuckMode()
+{
+	hrtimInitAllLegsBuckMode();
 }
 
 void HardwareConfiguration::initInterleavedBuckMode()
@@ -196,6 +218,27 @@ void HardwareConfiguration::setLeg2On()
 	hrtimStartLeg2();
 }
 
+void HardwareConfiguration::setLeg3On()
+{
+	hrtimStartLeg3();
+}
+
+void HardwareConfiguration::setLeg4On()
+{
+	hrtimStartLeg4();
+}
+
+void HardwareConfiguration::setLeg5On()
+{
+	hrtimStartLeg5();
+}
+
+void HardwareConfiguration::setLeg6On()
+{
+	hrtimStartLeg6();
+}
+
+
 void HardwareConfiguration::setInterleavedOff()
 {
 	powerDriverInterleavedOff();
@@ -220,6 +263,27 @@ void HardwareConfiguration::setLeg2Off()
 	hrtimStopLeg2();
 }
 
+void HardwareConfiguration::setLeg3Off()
+{
+	hrtimStopLeg3();
+}
+
+void HardwareConfiguration::setLeg4Off()
+{
+	hrtimStopLeg4();
+}
+
+void HardwareConfiguration::setLeg5Off()
+{
+	hrtimStopLeg5();
+}
+
+void HardwareConfiguration::setLeg6Off()
+{
+	hrtimStopLeg6();
+}
+
+
 
 /**
  * This function initializes both legs in buck mode
@@ -231,6 +295,24 @@ void HardwareConfiguration::hrtimInitInterleavedBuckMode()
 	hrtimPwmPeriod = leg_period();
 	hrtimPwmPhaseShift = hrtimPwmPeriod / 2;
 }
+
+
+/**
+ * This function initializes both legs in buck mode
+ */
+void HardwareConfiguration::hrtimInitAllLegsBuckMode()
+{
+	hrtim_init_voltage_legs();
+	hrtimPwmPeriod = leg_period();
+
+	hrtimPwmPhaseShiftLeg1 = 0;
+	hrtimPwmPhaseShiftLeg2 = 0;
+	hrtimPwmPhaseShiftLeg3 = 0;
+	hrtimPwmPhaseShiftLeg4 = 0;
+	hrtimPwmPhaseShiftLeg5 = 0;
+}
+
+
 
 /**
  * This function initializes both legs in buck mode in up-down mode
@@ -435,6 +517,60 @@ void HardwareConfiguration::setLeg2DutyCycle(float32_t pwm_duty_cycle)
 }
 
 /**
+ * This function transfer the calculated PWM value of leg_2 to the
+ * HRTIM peripheral and make sure it is between saturation
+ * bounds
+ */
+void HardwareConfiguration::setLeg3DutyCycle(float32_t pwm_duty_cycle)
+{
+	uint16_t pwm_pulse_width;
+
+	pwm_pulse_width = (pwm_duty_cycle * hrtimPwmPeriod);
+	leg_set(hrtimLeg3Tu, pwm_pulse_width, hrtimPwmPhaseShiftLeg3);
+}
+
+/**
+ * This function transfer the calculated PWM value of leg_2 to the
+ * HRTIM peripheral and make sure it is between saturation
+ * bounds
+ */
+void HardwareConfiguration::setLeg4DutyCycle(float32_t pwm_duty_cycle)
+{
+	uint16_t pwm_pulse_width;
+
+	pwm_pulse_width = (pwm_duty_cycle * hrtimPwmPeriod);
+	leg_set(hrtimLeg4Tu, pwm_pulse_width, hrtimPwmPhaseShiftLeg4);
+}
+
+/**
+ * This function transfer the calculated PWM value of leg_2 to the
+ * HRTIM peripheral and make sure it is between saturation
+ * bounds
+ */
+void HardwareConfiguration::setLeg5DutyCycle(float32_t pwm_duty_cycle)
+{
+	uint16_t pwm_pulse_width;
+
+	pwm_pulse_width = (pwm_duty_cycle * hrtimPwmPeriod);
+	leg_set(hrtimLeg5Tu, pwm_pulse_width, hrtimPwmPhaseShiftLeg5);
+}
+
+/**
+ * This function transfer the calculated PWM value of leg_2 to the
+ * HRTIM peripheral and make sure it is between saturation
+ * bounds
+ */
+void HardwareConfiguration::setLeg6DutyCycle(float32_t pwm_duty_cycle)
+{
+	uint16_t pwm_pulse_width;
+
+	pwm_pulse_width = (pwm_duty_cycle * hrtimPwmPeriod);
+	leg_set(hrtimLeg6Tu, pwm_pulse_width, hrtimPwmPhaseShiftLeg6);
+}
+
+
+
+/**
  * This function updates the phase shift between leg 1 and hrtim master
  */
 void HardwareConfiguration::setLeg1PhaseShift(float32_t phase_shift)
@@ -453,6 +589,9 @@ void HardwareConfiguration::setLeg2PhaseShift(float32_t phase_shift)
 	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
 	hrtimPwmPhaseShiftLeg2 = (uint16_t)(hrtimPwmPeriod * (phase_shift/360) );
 }
+
+
+
 
 /**
  * This function updates the phase shift between leg 1 and hrtim master for the center aligned application.
@@ -475,6 +614,47 @@ void HardwareConfiguration::setLeg2PhaseShiftCenterAligned(float32_t phase_shift
 	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
 	hrtimPwmPhaseShiftLeg2 = (uint16_t)(2*hrtimPwmPeriod * (phase_shift/360) );
 }
+
+/**
+ * This function updates the phase shift between leg 2 and hrtim master
+ */
+void HardwareConfiguration::setLeg3PhaseShiftCenterAligned(float32_t phase_shift)
+{
+	phase_shift = int(phase_shift)%360; // modulo
+	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
+	hrtimPwmPhaseShiftLeg3 = (uint16_t)(2*hrtimPwmPeriod * (phase_shift/360) );
+}
+
+/**
+ * This function updates the phase shift between leg 2 and hrtim master
+ */
+void HardwareConfiguration::setLeg4PhaseShiftCenterAligned(float32_t phase_shift)
+{
+	phase_shift = int(phase_shift)%360; // modulo
+	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
+	hrtimPwmPhaseShiftLeg4 = (uint16_t)(2*hrtimPwmPeriod * (phase_shift/360) );
+}
+
+/**
+ * This function updates the phase shift between leg 2 and hrtim master
+ */
+void HardwareConfiguration::setLeg5PhaseShiftCenterAligned(float32_t phase_shift)
+{
+	phase_shift = int(phase_shift)%360; // modulo
+	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
+	hrtimPwmPhaseShiftLeg5 = (uint16_t)(2*hrtimPwmPeriod * (phase_shift/360) );
+}
+
+/**
+ * This function updates the phase shift between leg 2 and hrtim master
+ */
+void HardwareConfiguration::setLeg6PhaseShiftCenterAligned(float32_t phase_shift)
+{
+	phase_shift = int(phase_shift)%360; // modulo
+	if(phase_shift<0) phase_shift = phase_shift + 360; // case of negative phase
+	hrtimPwmPhaseShiftLeg6 = (uint16_t)(2*hrtimPwmPeriod * (phase_shift/360) );
+}
+
 
 /**
  * This stops the converter by putting both timing
@@ -513,6 +693,45 @@ void HardwareConfiguration::hrtimStopLeg2()
 }
 
 /**
+ * This stops only leg 2
+ */
+void HardwareConfiguration::hrtimStopLeg3()
+{
+	leg_stop(hrtimLeg3Tu);
+}
+
+/**
+ * This stops only leg 2
+ */
+void HardwareConfiguration::hrtimStopLeg4()
+{
+	leg_stop(hrtimLeg4Tu);
+}
+
+
+/**
+ * This stops only leg 2
+ */
+void HardwareConfiguration::hrtimStopLeg5()
+{
+	leg_stop(hrtimLeg5Tu);
+}
+
+
+/**
+ * This stops only leg 2
+ */
+void HardwareConfiguration::hrtimStopLeg6()
+{
+	leg_stop(hrtimLeg6Tu);
+}
+
+
+
+
+
+
+/**
  * This stops the converter by putting both timing
  * units outputs low
  */
@@ -549,6 +768,49 @@ void HardwareConfiguration::hrtimStartLeg2()
 {
 	leg_start(hrtimLeg2Tu);
 }
+
+
+/**
+ * This stops the converter by putting both timing
+ * units outputs low
+ */
+void HardwareConfiguration::hrtimStartLeg3()
+{
+	leg_start(hrtimLeg3Tu);
+}
+
+
+/**
+ * This stops the converter by putting both timing
+ * units outputs low
+ */
+void HardwareConfiguration::hrtimStartLeg4()
+{
+	leg_start(hrtimLeg4Tu);
+}
+
+
+/**
+ * This stops the converter by putting both timing
+ * units outputs low
+ */
+void HardwareConfiguration::hrtimStartLeg5()
+{
+	leg_start(hrtimLeg5Tu);
+}
+
+
+/**
+ * This stops the converter by putting both timing
+ * units outputs low
+ */
+void HardwareConfiguration::hrtimStartLeg6()
+{
+	leg_start(hrtimLeg6Tu);
+}
+
+
+
 
 void HardwareConfiguration::setHrtimAdcTrigInterleaved(float32_t new_trig)
 {

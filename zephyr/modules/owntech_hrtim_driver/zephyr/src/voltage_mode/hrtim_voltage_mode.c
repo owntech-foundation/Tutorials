@@ -213,12 +213,60 @@ uint16_t hrtim_init_updwn(hrtim_t hrtim, uint32_t *freq, uint16_t dt, uint8_t le
     hrtim_cnt_en(hrtim, leg2_tu);  // Enable the counter
     hrtim_rst_evt_en(hrtim, leg2_tu, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer B with the master timer, with a reset on period event
 
-
     hrtim_cmpl_pwm_out1(hrtim, leg1_tu, leg1_upper_switch_convention, UpDwn); // Set the convention for leg 1
     hrtim_cmpl_pwm_out1(hrtim, leg2_tu, leg2_upper_switch_convention, UpDwn); // Set the convention for leg 2
 
     return period/2; // return timing unit period which is half the period of the master timer
 }
+
+uint16_t hrtim_init_all_updwn(hrtim_t hrtim, uint32_t *freq, uint16_t dt)
+{
+    /* Master timer and timing unit frequency initialization */
+    uint16_t period = hrtim_init_master(hrtim, freq);
+    uint32_t freq_tu = (*freq)*2;
+
+    /* Timer initialization for leg 1 */
+    hrtim_init_tu(hrtim, TIMA, &freq_tu, UpDwn);
+    hrtim_pwm_dt(hrtim, TIMA, dt, dt); // Set the dead time. Note: this must be done before enable counter
+    hrtim_cnt_en(hrtim, TIMA); // Enable counter 
+    hrtim_rst_evt_en(hrtim, TIMA, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer with the master timer, with a reset on period event
+
+    /* Timer initialization for leg 1 */
+    hrtim_init_tu(hrtim, TIMC, &freq_tu, UpDwn);
+    hrtim_pwm_dt(hrtim, TIMC, dt, dt); // Set the dead time. Note: this must be done before enable counter
+    hrtim_cnt_en(hrtim, TIMC); // Enable counter 
+    hrtim_rst_evt_en(hrtim, TIMC, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer with the master timer, with a reset on period event
+
+    /* Timer initialization for leg 1 */
+    hrtim_init_tu(hrtim, TIMD, &freq_tu, UpDwn);
+    hrtim_pwm_dt(hrtim, TIMD, dt, dt); // Set the dead time. Note: this must be done before enable counter
+    hrtim_cnt_en(hrtim, TIMD); // Enable counter 
+    hrtim_rst_evt_en(hrtim, TIMD, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer with the master timer, with a reset on period event
+
+   /* Timer initialization for leg 1 */
+    hrtim_init_tu(hrtim, TIME, &freq_tu, UpDwn);
+    hrtim_pwm_dt(hrtim, TIME, dt, dt); // Set the dead time. Note: this must be done before enable counter
+    hrtim_cnt_en(hrtim, TIME); // Enable counter 
+    hrtim_rst_evt_en(hrtim, TIME, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer with the master timer, with a reset on period event
+
+    /* Timer initialization for leg 1 */
+    hrtim_init_tu(hrtim, TIMF, &freq_tu, UpDwn);
+    hrtim_pwm_dt(hrtim, TIMF, dt, dt); // Set the dead time. Note: this must be done before enable counter
+    hrtim_cnt_en(hrtim, TIMF); // Enable counter 
+    hrtim_rst_evt_en(hrtim, TIMF, LL_HRTIM_RESETTRIG_MASTER_PER); // We synchronize the Timer with the master timer, with a reset on period event
+
+    hrtim_cmpl_pwm_out1(hrtim, TIMA, true, UpDwn); // Set the convention for leg 1
+    hrtim_cmpl_pwm_out1(hrtim, TIMC, true, UpDwn); // Set the convention for leg 2
+    hrtim_cmpl_pwm_out1(hrtim, TIMD, true, UpDwn); // Set the convention for leg 3
+    hrtim_cmpl_pwm_out1(hrtim, TIME, true, UpDwn); // Set the convention for leg 4
+    hrtim_cmpl_pwm_out1(hrtim, TIMF, true, UpDwn); // Set the convention for leg 5
+
+
+    return period/2;
+
+}
+
+
 
 void hrtim_pwm_set(hrtim_t hrtim, hrtim_tu_t tu, uint16_t value, uint16_t shift)
 {
@@ -401,7 +449,7 @@ uint16_t hrtim_init_tu(hrtim_t hrtim, hrtim_tu_t tu, uint32_t *freq, hrtim_cnt_t
         GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
         LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     
-    } else {
+    } else if (tu == TIMC){
         LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
         /* USER CODE END HRTIM1_Init 2 */
             /**HRTIM1 GPIO Configuration
@@ -423,8 +471,77 @@ uint16_t hrtim_init_tu(hrtim_t hrtim, hrtim_tu_t tu, uint32_t *freq, hrtim_cnt_t
         GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
         GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
         LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    }
 
+    } else if (tu == TIMD){
+
+        LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+        /* USER CODE END HRTIM1_Init 2 */
+            /**HRTIM1 GPIO Configuration
+            PB14     ------> HRTIM1_CHD1
+            PB15     ------> HRTIM1_CHD2
+            */
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_14;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    }else if (tu == TIME){
+        LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+        /* USER CODE END HRTIM1_Init */
+            /**HRTIM1 GPIO Configuration
+            PC08     ------> HRTIM1_CHE1
+            PC09     ------> HRTIM1_CHE2
+            */
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_8;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_9;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    }else {
+        LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+        /* USER CODE END HRTIM1_Init*/
+            /**HRTIM1 GPIO Configuration
+            PC06     ------> HRTIM1_CHF1
+            PC07     ------> HRTIM1_CHF2
+            */
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_13;
+        LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    }
 
     
     /* At start-up, it is mandatory to initialize first the prescaler

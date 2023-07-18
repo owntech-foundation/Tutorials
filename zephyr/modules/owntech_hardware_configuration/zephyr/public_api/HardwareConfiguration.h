@@ -51,6 +51,7 @@ typedef enum
 	O2_v_1_1_2,
 	SPIN_v_0_1,
 	SPIN_v_0_9,
+	SPIN_v_1_0,
 	TWIST_v_1_1_2
 } hardware_version_t;
 
@@ -128,7 +129,7 @@ public:
 
 	/////
 	// Power converter
-
+	void InitAllLegsBuckMode();
 	void initInterleavedBuckMode();
 	void initInterleavedBuckModeCenterAligned();
 	void initInterleavedBoostMode();
@@ -177,6 +178,16 @@ public:
 	 */
 	void setLeg2DutyCycle(float32_t duty_cycle);
 
+	void setLeg3DutyCycle(float32_t duty_cycle);
+
+	void setLeg4DutyCycle(float32_t duty_cycle);
+
+	void setLeg5DutyCycle(float32_t duty_cycle);
+
+	void setLeg6DutyCycle(float32_t duty_cycle);
+
+
+
 	/**
 	 * @brief     This function updates the phase shift between the leg 1 and the master hrtim
 	 *
@@ -191,6 +202,7 @@ public:
 	 */
 	void setLeg2PhaseShift(float32_t phase_shift);
 
+
 	/**
 	 * @brief     This function updates the phase shift between the leg 1 and the master hrtim for the center aligned
 	 *
@@ -204,6 +216,15 @@ public:
 	 * @param[in] phase_shift    floating point phase shift of leg_2 in degrees
 	 */
 	void setLeg2PhaseShiftCenterAligned(float32_t phase_shift);
+
+	void setLeg3PhaseShiftCenterAligned(float32_t phase_shift);
+
+	void setLeg4PhaseShiftCenterAligned(float32_t phase_shift);
+
+	void setLeg5PhaseShiftCenterAligned(float32_t phase_shift);
+
+	void setLeg6PhaseShiftCenterAligned(float32_t phase_shift);
+
 
 	/**
 	 * @brief This function sets the dead time of the leg 1
@@ -249,11 +270,19 @@ public:
 	void setFullBridgeBuckOn();
 	void setLeg1On();
 	void setLeg2On();
+	void setLeg3On();
+	void setLeg4On();
+	void setLeg5On();
+	void setLeg6On();
 
 	void setInterleavedOff();
 	void setFullBridgeBuckOff();
 	void setLeg1Off();
 	void setLeg2Off();
+	void setLeg3Off();
+	void setLeg4Off();
+	void setLeg5Off();
+	void setLeg6Off();
 
 	/**
 	 * @brief     Updates the adc trigger moment
@@ -410,6 +439,7 @@ private:
 	// HRTIM
 	void hrtimLegTu(hrtim_tu_t tu1, hrtim_tu_t tu2);
 	void hrtimInitInterleavedBuckMode();
+	void hrtimInitAllLegsBuckMode();
 	void hrtimInitInterleavedBuckModeCenterAligned();
 	void hrtimInitInterleavedBoostMode();
 	void hrtimInitInterleavedBoostModeCenterAligned();
@@ -420,12 +450,26 @@ private:
 	void hrtimInitCurrentMode(bool leg1_buck, bool leg2_buck, hrtim_tu_t leg1_tu, hrtim_tu_t leg2_tu);
 	void hrtimStopInterleaved();
 	void hrtimStopFullBridgeBuck();
-	void hrtimStopLeg1();
-	void hrtimStopLeg2();
 	void hrtimStartInterleaved();
 	void hrtimStartFullBridgeBuck();
+
+	void hrtimAllLegs();
+
+	void hrtimStopLeg1();
+	void hrtimStopLeg2();
+	void hrtimStopLeg3();
+	void hrtimStopLeg4();
+	void hrtimStopLeg5();
+	void hrtimStopLeg6();
+
 	void hrtimStartLeg1();
 	void hrtimStartLeg2();
+	void hrtimStartLeg3();
+	void hrtimStartLeg4();
+	void hrtimStartLeg5();
+	void hrtimStartLeg6();
+
+
 
 	// ADC
 	void adcInitialize();
@@ -454,13 +498,23 @@ private:
 	// HRTIM
 	static uint16_t hrtimPwmPeriod;
 	static uint16_t hrtimPwmPhaseShift;
+
 	static uint16_t hrtimPwmPhaseShiftLeg1;
 	static uint16_t hrtimPwmPhaseShiftLeg2;
-	static bool     hrtimFullBridgeBipolarMode;
+	static uint16_t hrtimPwmPhaseShiftLeg3;
+	static uint16_t hrtimPwmPhaseShiftLeg4;
+	static uint16_t hrtimPwmPhaseShiftLeg5;
+	static uint16_t hrtimPwmPhaseShiftLeg6;
+
 
 	static hrtim_tu_t hrtimLeg1Tu;
 	static hrtim_tu_t hrtimLeg2Tu;
+	static hrtim_tu_t hrtimLeg3Tu;
+	static hrtim_tu_t hrtimLeg4Tu;
+	static hrtim_tu_t hrtimLeg5Tu;
+	static hrtim_tu_t hrtimLeg6Tu;
 
+	static bool     hrtimFullBridgeBipolarMode;
 	// ADC
 	static bool adcInitialized;
 

@@ -156,6 +156,16 @@ uint16_t hrtim_init(hrtim_t dev, uint32_t *freq, uint16_t dead_time_ns, uint8_t 
 uint16_t hrtim_init_updwn(hrtim_t dev, uint32_t *freq, uint16_t dt, uint8_t leg1_upper_switch_convention, uint8_t leg2_upper_switch_convention,hrtim_tu_t leg1_tu, hrtim_tu_t leg2_tu);
 
 /**
+ * @brief   Initialize an HRTIM device and all its timing units for
+ *          complementary pwm outputs with a dead time with Up-Down mode (center alligned).
+ *
+ * @param[in] dev      HRTIM device to initialize
+ * @param[inout] freq  HRTIM frequency in Hz
+ * @param[in] dead_time_ns       Desired dead time in ns
+ */
+uint16_t hrtim_init_all_updwn(hrtim_t dev, uint32_t *freq, uint16_t dt);
+
+/**
  * @brief   Updates the duty cycle
  *
  * @param[in] dev       HRTIM device to be used
