@@ -32,6 +32,7 @@
 #include "HardwareConfiguration.h"
 #include "DataAcquisition.h"
 #include "Scheduling.h"
+#include "power.h"
 
 //------------ZEPHYR DRIVERS----------------------
 #include "console/console.h"
