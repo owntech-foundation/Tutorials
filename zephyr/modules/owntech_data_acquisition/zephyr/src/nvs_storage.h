@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2022 LAAS-CNRS
+ * Copyright (c) 2023 LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,39 +18,39 @@
  */
 
 /**
- * @brief   Zephyr's defines for neutral to ground gpio pin (PA0)
- * @date    2022
- * @author  Clément Foucher <clement.foucher@laas.fr>
+ * @date   2023
+ *
+ * @author Clément Foucher <clement.foucher@laas.fr>
+ * @author Jean Alinei <jean.alinei@laas.fr>
  */
 
-
-#ifndef NGND_H_
-#define NGND_H_
-
-
-// Zephyr
-#include <zephyr/device.h>
+#ifndef NVS_STORAGE_H_
+#define NVS_STORAGE_H_
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdint.h>
 
 
 /////
-// Public device name
+// Type definitions
 
-#define NGND_DEVICE DT_NODELABEL(ngnd)
-
+// NVS categories must be on the upper half
+// of the 2-bytes value, hence end with 00
+enum nvs_category_t : uint16_t
+{
+	VERSION         = 0x0100,
+	ADC_CALIBRATION = 0x0200
+};
 
 /////
 // API
 
-void ngnd_set(const struct device* dev, int value);
+int8_t nvs_storage_store_data(uint16_t data_id, const void* data, uint8_t data_size);
+int8_t nvs_storage_retrieve_data(uint16_t data_id, void* data_buffer, uint8_t data_buffer_size);
+int8_t nvs_storage_clear_all_stored_data();
+
+uint16_t nvs_storage_get_current_version();
+uint16_t nvs_storage_get_version_in_nvs();
 
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif // NGND_H_
+#endif // NVS_STORAGE_H_
