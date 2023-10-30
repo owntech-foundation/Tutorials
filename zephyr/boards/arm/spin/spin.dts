@@ -133,6 +133,15 @@
 	status = "okay";
 };
 
+&usart2 {
+	
+	pinctrl-0 = < &usart2_tx_pb3 &usart2_rx_pa15 >;
+	pinctrl-names = "default";
+	current-speed = < 38400 >;
+	status = "okay";
+};
+
+
 &usart3 {
 	pinctrl-0 = < &usart3_tx_pc10 &usart3_rx_pc11 >;
 	pinctrl-names = "default";
