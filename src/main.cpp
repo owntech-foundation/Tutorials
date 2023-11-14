@@ -126,6 +126,8 @@ void setup_hardware()
     hwConfig.setBoardVersion(TWIST_v_1_1_2);
     power.setShieldVersion(shield_TWIST_V1_3);
     power.initAllBuck(VOLTAGE_MODE);
+    power.setAllPhaseShift(0);
+
     power.setAllTriggerValue(0.06);
     dataAcquisition.enableTwistDefaultChannels();
     
@@ -224,9 +226,9 @@ void loop_communication_task()
     const uint8_t HEADER_MSB = 0x40;
     const uint8_t HEADER_LSB = 0x80;
 
-    static uint16_t dead_zone_high = 520;
+    static uint16_t dead_zone_high = 500;
     static uint16_t maximum_voltage_reference = 18;
-    static uint16_t dead_zone_low = 480 ;
+    static uint16_t dead_zone_low = 460 ;
     static uint16_t minimum_voltage_reference = 18;   //leave this value positive. The minus sign comes from an operation in the code
 
  
@@ -238,7 +240,7 @@ void loop_communication_task()
     if(mode==WIRELESSMODE){
         if(ret_val == -1)                   // verifies that the connection is still up
         {
-            //voltage_reference = 0;
+            voltage_reference = 0;
 
         } else if(ret_val != -1){           //runs if the connection is up
 
@@ -263,7 +265,6 @@ void loop_communication_task()
             if (data>dead_zone_high){
                 
                 zone_high = true;
-                new_voltage_reference = (float32_t)(data-dead_zone_high)/dead_zone_high;
                 new_voltage_reference = (float32_t)(data-dead_zone_high)/dead_zone_high;
                 new_voltage_reference = new_voltage_reference*new_voltage_reference*maximum_voltage;
 
@@ -295,18 +296,18 @@ void loop_communication_task()
         printk("%f:", duty_cycle);
         printk("%f:", duty_cycle_i_max);
         printk("%f:", duty_cycle_i_min);
-        printk("%f:", Vhigh_value);
+        printk("%d:", data);
         printk("%f:", V1_low_value-V2_low_value);
-        printk("%f:", i1_low_value);
+        printk("%f:", i2_low_value);
         printk("%f\n", voltage_reference);
 
     }else{
         printk("%f:", duty_cycle);
         printk("%f:", duty_cycle_i_max);
         printk("%f:", duty_cycle_i_min);
-        printk("%f:", Vhigh_value);
+        printk("%d:", data);
         printk("%f:", V1_low_value-V2_low_value);
-        printk("%f:", i1_low_value);
+        printk("%f:", i2_low_value);
         printk("%f\n", voltage_reference);
     }
     scheduling.suspendCurrentTaskMs(100); // k_msleep(50);
@@ -337,7 +338,7 @@ void loop_control_task()
          pwm_enable = false;
          power.stopAll();
 
-    }else if(mode==POWERMODE || mode==BUCKMODE) {
+    }else if(mode==POWERMODE || mode==BUCKMODE || mode==WIRELESSMODE) {
 
         if(!pwm_enable) {
             pwm_enable = true;
@@ -346,8 +347,32 @@ void loop_control_task()
     if(mode==BUCKMODE){
         // duty_cycle = opalib_control_interleaved_pid_calculation(voltage_reference, V1_low_value);
     }
+
+    if(mode==WIRELESSMODE){
+        hwConfig.setLedToggle();
+        if(voltage_reference>0){
+            duty_cycle = opalib_control_interleaved_pid_calculation( voltage_reference/2, i2_low_value);
+        }
+        if(voltage_reference<0){
+            duty_cycle = opalib_control_interleaved_pid_calculation( (-1)*(voltage_reference)/2, i2_low_value);
+        }
+    }
+
     //Sends the PWM to the switches
-    power.setAllDutyCycle(duty_cycle);
+    //power.setAllDutyCycle(duty_cycle);
+
+    if(voltage_reference>=0){
+        power.setLegDutyCycle(LEG1,1-duty_cycle);
+        power.setLegDutyCycle(LEG2,duty_cycle);
+    }
+    if(voltage_reference<0){
+        power.setLegDutyCycle(LEG1,duty_cycle);
+        power.setLegDutyCycle(LEG2,1-duty_cycle);
+    }
+
+    // power.setLegDutyCycle(LEG2,duty_cycle);
+    // power.setLegDutyCycle(LEG1,1-duty_cycle);
+
     }
 }
 
