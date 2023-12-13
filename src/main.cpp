@@ -72,9 +72,6 @@ uint8_t uart2_buffer[uart2_buffer_size];
 enum serial_interface_menu_mode //LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
     IDLEMODE =0,
-    SERIALMODE,
-    POWERMODE,
-    BUCKMODE,
     WIRELESSMODE,
 };
 
@@ -102,10 +99,10 @@ static float32_t ihigh_value; //store value of ihigh (app task)
 static float32_t meas_data; //temp storage meas value (ctrl task)
 //
 static float32_t voltage_reference = 10; //voltage reference (app task)
-static float32_t new_voltage_reference = 0; //new voltage reference (app task)
 static float32_t voltage_reference_step = 2; //voltage reference step (app task)
-static float32_t current_reference = 2; //current reference (app task)
-static float32_t current_reference_step = 0.2; //current reference step (app task)
+static float32_t current_reference = 0.8; //current reference (app task)
+static float32_t new_wireless_reference = 0; //current reference step (app task)
+
 
 static float32_t maximum_voltage = 18.0; //store value of Vhigh (app task)
 static float32_t maximum_current = 10.0; //store value of Vhigh (app task)
@@ -150,12 +147,12 @@ void setup_hardware()
 void setup_software()
 {
     opalib_control_init_interleaved_pid(kp, ki, kd, control_task_period);
-    // dataAcquisition.setParameters(V1_LOW,0.045022,-91.679);
-    // dataAcquisition.setParameters(V2_LOW,0.044907,-91.430);
-    // dataAcquisition.setParameters(V_HIGH,0.066457,-0.279);
-    // dataAcquisition.setParameters(I1_LOW,0.004563,-9.367);
-    // dataAcquisition.setParameters(I2_LOW,0.005507,-11.351);
-    // dataAcquisition.setParameters(I_HIGH,0.005171,-10.597);
+    dataAcquisition.setParameters(V1_LOW,0.045022,-91.679);
+    dataAcquisition.setParameters(V2_LOW,0.044907,-91.430);
+    dataAcquisition.setParameters(V_HIGH,0.066457,-0.279);
+    dataAcquisition.setParameters(I1_LOW,0.004563,-9.367);
+    dataAcquisition.setParameters(I2_LOW,0.005507,-11.351);
+    dataAcquisition.setParameters(I_HIGH,0.005171,-10.597);
 
     application_task_number = scheduling.defineAsynchronousTask(loop_application_task);
     communication_task_number = scheduling.defineAsynchronousTask(loop_communication_task);
@@ -192,9 +189,6 @@ void loop_application_task()
             case 'w':
                 mode = WIRELESSMODE;
                 break;
-            case 'p':
-                mode = POWERMODE;
-                break;
             case 'u':
                 duty_cycle = duty_cycle + duty_cycle_step;
                 break;
@@ -226,11 +220,9 @@ void loop_communication_task()
     const uint8_t HEADER_MSB = 0x40;
     const uint8_t HEADER_LSB = 0x80;
 
-    static uint16_t dead_zone_high = 500;
-    static uint16_t maximum_voltage_reference = 18;
-    static uint16_t dead_zone_low = 460 ;
-    static uint16_t minimum_voltage_reference = 18;   //leave this value positive. The minus sign comes from an operation in the code
-
+    static uint16_t dead_zone_high = 520;
+    static uint16_t dead_zone_low = 480 ;
+    
  
 
     uint8_t received_char;
@@ -240,7 +232,7 @@ void loop_communication_task()
     if(mode==WIRELESSMODE){
         if(ret_val == -1)                   // verifies that the connection is still up
         {
-            voltage_reference = 0;
+            current_reference = NO_VALUE;
 
         } else if(ret_val != -1){           //runs if the connection is up
 
@@ -262,62 +254,62 @@ void loop_communication_task()
                 }
             }
 
-            if (data>dead_zone_high){
+            if (data>dead_zone_high && data<1000){
                 
                 zone_high = true;
-                new_voltage_reference = (float32_t)(data-dead_zone_high)/dead_zone_high;
-                new_voltage_reference = new_voltage_reference*new_voltage_reference*maximum_voltage;
+                new_wireless_reference = (float32_t)(data-dead_zone_high)/(dead_zone_high);
+                new_wireless_reference = new_wireless_reference*new_wireless_reference*maximum_current;
 
-                if (new_voltage_reference > 18.0) {
+                if (new_wireless_reference > maximum_current) {
                     //does not apply the new value 
                 }else{
-                    voltage_reference = new_voltage_reference;
+                    current_reference = new_wireless_reference;
                 }
 
 
-            } else if (data<dead_zone_low){
+            } else if (data<dead_zone_low && data<1000){
                 
                 zone_high = false;
-                new_voltage_reference = (float32_t)(data-dead_zone_low)/dead_zone_low;
-                new_voltage_reference = new_voltage_reference*new_voltage_reference*-maximum_voltage;
+                new_wireless_reference = (float32_t)(data-dead_zone_low)/(dead_zone_low);
+                new_wireless_reference = -1*new_wireless_reference*new_wireless_reference*maximum_current;
 
-                if (new_voltage_reference < -18.0) { 
+                if (new_wireless_reference < -maximum_current) { 
                     //does not apply the new value 
                 }else{
-                    voltage_reference = new_voltage_reference;
+                    current_reference = new_wireless_reference;
                 }
-
+            }else if(data>=1000) {
+                //saturates control at the extremes(does nothing so the values remain the same from before entering saturation)
             } else {
                 zone_high=false;
-                voltage_reference = 0;
+                current_reference = 0;
             }
 
         }
         printk("%f:", duty_cycle);
-        printk("%f:", duty_cycle_i_max);
-        printk("%f:", duty_cycle_i_min);
         printk("%d:", data);
-        printk("%f:", V1_low_value-V2_low_value);
+        printk("%f:", V2_low_value-V1_low_value);
+        printk("%f:", i1_low_value);
         printk("%f:", i2_low_value);
-        printk("%f\n", voltage_reference);
+        if(current_reference==NO_VALUE){printk("%f\n", -0.1111);}
+        else{printk("%f\n", current_reference);}
 
     }else{
         printk("%f:", duty_cycle);
-        printk("%f:", duty_cycle_i_max);
-        printk("%f:", duty_cycle_i_min);
         printk("%d:", data);
-        printk("%f:", V1_low_value-V2_low_value);
+        printk("%f:", V2_low_value-V1_low_value);
+        printk("%f:", i1_low_value);
         printk("%f:", i2_low_value);
-        printk("%f\n", voltage_reference);
+        printk("%f\n", current_reference);
     }
-    scheduling.suspendCurrentTaskMs(100); // k_msleep(50);
+    scheduling.suspendCurrentTaskMs(100); 
 }
 
 
 void loop_control_task()
 {
-    meas_data = dataAcquisition.getLatest(V_HIGH);
-    if(meas_data!=NO_VALUE) Vhigh_value = meas_data;
+    // meas_data = dataAcquisition.getLatest(V_HIGH);
+    // if(meas_data!=NO_VALUE) Vhigh_value = meas_data;
 
     meas_data = dataAcquisition.getLatest(V1_LOW);
     if(meas_data!=NO_VALUE) V1_low_value = meas_data;
@@ -325,8 +317,8 @@ void loop_control_task()
     meas_data = dataAcquisition.getLatest(V2_LOW);
     if(meas_data!=NO_VALUE) V2_low_value= meas_data;
 
-    meas_data = dataAcquisition.getLatest(I_HIGH);
-    if(meas_data!=NO_VALUE) ihigh_value = meas_data;
+    // meas_data = dataAcquisition.getLatest(I_HIGH);
+    // if(meas_data!=NO_VALUE) ihigh_value = meas_data;
 
     meas_data = dataAcquisition.getLatest(I1_LOW);
     if(meas_data!=NO_VALUE) i1_low_value = meas_data;
@@ -334,44 +326,32 @@ void loop_control_task()
     meas_data = dataAcquisition.getLatest(I2_LOW);
     if(meas_data!=NO_VALUE) i2_low_value = meas_data;
 
-    if(mode==IDLEMODE || mode==SERIALMODE) {
+    if(mode==IDLEMODE) {
          pwm_enable = false;
          power.stopAll();
 
-    }else if(mode==POWERMODE || mode==BUCKMODE || mode==WIRELESSMODE) {
+    }else if(mode==WIRELESSMODE) {
 
-        if(!pwm_enable) {
-            pwm_enable = true;
-            power.startAll();
+        if(current_reference != NO_VALUE){                                  // stops the power if the remote control is disconnected
+
+            hwConfig.setLedToggle();
+
+            if(pwm_enable == false) {  //if the power is off and we have a connection with the remote control, it turns the system on
+                pwm_enable = true;
+                power.startAll();
+            }
+
+            if(current_reference>=0){ 
+                duty_cycle = opalib_control_interleaved_pid_calculation( current_reference, i2_low_value); 
+            }else{ 
+                duty_cycle = opalib_control_interleaved_pid_calculation( (current_reference), i2_low_value);
+            }
+            power.setLegDutyCycle(LEG1,1-duty_cycle);
+            power.setLegDutyCycle(LEG2,duty_cycle);
+        } else {
+            pwm_enable = false;
+            power.stopAll();
         }
-    if(mode==BUCKMODE){
-        // duty_cycle = opalib_control_interleaved_pid_calculation(voltage_reference, V1_low_value);
-    }
-
-    if(mode==WIRELESSMODE){
-        hwConfig.setLedToggle();
-        if(voltage_reference>0){
-            duty_cycle = opalib_control_interleaved_pid_calculation( voltage_reference/2, i2_low_value);
-        }
-        if(voltage_reference<0){
-            duty_cycle = opalib_control_interleaved_pid_calculation( (-1)*(voltage_reference)/2, i2_low_value);
-        }
-    }
-
-    //Sends the PWM to the switches
-    //power.setAllDutyCycle(duty_cycle);
-
-    if(voltage_reference>=0){
-        power.setLegDutyCycle(LEG1,1-duty_cycle);
-        power.setLegDutyCycle(LEG2,duty_cycle);
-    }
-    if(voltage_reference<0){
-        power.setLegDutyCycle(LEG1,duty_cycle);
-        power.setLegDutyCycle(LEG2,1-duty_cycle);
-    }
-
-    // power.setLegDutyCycle(LEG2,duty_cycle);
-    // power.setLegDutyCycle(LEG1,1-duty_cycle);
 
     }
 }
